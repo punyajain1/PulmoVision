@@ -55,11 +55,14 @@ async function createPrediction(userId, payload) {
   // informational only - it does NOT block the prediction and it does NOT
   // change the ML model's input. See reportAnalysisService.js for the
   // limits of what this can and can't verify.
-  const reportReview = await analyzeAllReports(inputData, reports, REQUIRED_REPORT_FIELDS);
-
-  const result = await mlService.getPrediction(inputData);
-
-  const prediction = result.data || result;
+  //
+  // The ML call runs at the same time. It throws a 503/502 ApiError if the ML
+  // service can't produce a real result, which rejects immediately and saves
+  // nothing for a failed prediction.
+  const [reportReview, prediction] = await Promise.all([
+    analyzeAllReports(inputData, reports, REQUIRED_REPORT_FIELDS),
+    mlService.getPrediction(inputData),
+  ]);
 
   const savedPrediction = await Prediction.create({
     userId,
@@ -67,17 +70,36 @@ async function createPrediction(userId, payload) {
     details: details || {},
     reports: reports || {},
     reportReview,
-    featureContributions: prediction.featureContributions || [],
+    featureContributions: prediction.featureContributions,
     prediction: prediction.prediction,
     probability: prediction.probability,
     modelName: prediction.modelName,
+    modelVersion: prediction.modelVersion,
+    engine: prediction.engine,
+    modelFeatures: prediction.modelFeatures,
+    baseValue: prediction.baseValue,
+    calibrated: prediction.calibrated,
+    threshold: prediction.threshold,
+    trainingPositiveRate: prediction.trainingPositiveRate,
+    uncertainty: prediction.uncertainty,
+    conformal: prediction.conformal,
+    outOfDistribution: prediction.outOfDistribution,
+    lowConfidence: prediction.lowConfidence,
   });
 
   return savedPrediction;
 }
 
+// What-If simulator: runs the model on changed answers without saving anything.
+async function simulatePrediction(inputData) {
+  return mlService.simulatePrediction(inputData);
+}
+
+// List views never need the uploaded files (base64, up to several MB each).
+// They are still returned by getPredictionById.
 async function listPredictions(userId) {
   return Prediction.find({ userId })
+    .select("-reports")
     .sort({ createdAt: -1 })
     .lean();
 }
@@ -116,16 +138,22 @@ async function deletePrediction(userId, predictionId) {
   return prediction;
 }
 
-async function updateDoctorReview(predictionId, { clinicalNotes, doctorReviewed }) {
+async function updateDoctorReview(userId, predictionId, { clinicalNotes, doctorReviewed }) {
   if (!mongoose.Types.ObjectId.isValid(predictionId)) {
     throw new ApiError(400, "Invalid prediction id");
   }
 
-  const prediction = await Prediction.findByIdAndUpdate(
-    predictionId,
-    { clinicalNotes, doctorReviewed: Boolean(doctorReviewed) },
-    { new: true }
-  );
+  // Only update the fields that were sent, so omitting one doesn't reset it.
+  const update = {};
+  if (clinicalNotes !== undefined) update.clinicalNotes = clinicalNotes;
+  if (doctorReviewed !== undefined) update.doctorReviewed = doctorReviewed;
+
+  // Scoped to the owner: a user can only review their own predictions.
+  const prediction = await Prediction.findOneAndUpdate(
+    { _id: predictionId, userId },
+    update,
+    { new: true, runValidators: true }
+  ).select("-reports");
 
   if (!prediction) {
     throw new ApiError(404, "Prediction not found");
@@ -136,6 +164,7 @@ async function updateDoctorReview(predictionId, { clinicalNotes, doctorReviewed 
 
 module.exports = {
   createPrediction,
+  simulatePrediction,
   listPredictions,
   getPredictionById,
   deletePrediction,

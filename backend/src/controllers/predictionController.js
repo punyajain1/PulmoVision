@@ -10,6 +10,15 @@ async function create(req, res, next) {
   }
 }
 
+async function simulate(req, res, next) {
+  try {
+    const result = await predictionService.simulatePrediction(req.body);
+    success(res, result);
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function list(req, res, next) {
   try {
     const predictions = await predictionService.listPredictions(req.user.id);
@@ -39,11 +48,11 @@ async function remove(req, res, next) {
 
 async function review(req, res, next) {
   try {
-    const updated = await predictionService.updateDoctorReview(req.params.id, req.body);
+    const updated = await predictionService.updateDoctorReview(req.user.id, req.params.id, req.body);
     success(res, updated);
   } catch (err) {
     next(err);
   }
 }
 
-module.exports = { create, list, getById, remove, review };
+module.exports = { create, simulate, list, getById, remove, review };

@@ -1,0 +1,60 @@
+{
+  "calibration": {
+    "method": "sigmoid (Platt), fitted on 5-fold out-of-fold predictions of the training split",
+    "oof_brier_uncalibrated": 0.1468,
+    "oof_brier_calibrated": 0.0969,
+    "oof_ece_uncalibrated": 0.162,
+    "oof_ece_calibrated": 0.0424,
+    "training_positive_rate": 0.8636
+  },
+  "threshold": {
+    "value": 0.6469,
+    "rule": "highest threshold with out-of-fold sensitivity >= 90%",
+    "oof_sensitivity": 0.9,
+    "oof_specificity": 0.4
+  },
+  "conformal": {
+    "alpha": 0.2,
+    "type": "class-conditional (Mondrian) cross-conformal on out-of-fold predictions",
+    "q_high": 0.14546,
+    "q_low": 0.930938,
+    "n_high": 190,
+    "n_low": 30
+  },
+  "uncertainty": {
+    "method": "spread of the 100 bootstrap trees' calibrated probabilities",
+    "interval_percentiles": [
+      10,
+      90
+    ]
+  },
+  "ood": {
+    "age_low": 44.38,
+    "age_high": 80.62,
+    "min_support": 5,
+    "feature_names": [
+      "ALLERGY",
+      "SWALLOWING_DIFFICULTY",
+      "PEER_PRESSURE",
+      "COUGHING"
+    ],
+    "combo_counts": {
+      "-1.0756,-0.9383,-0.9643,-1.1906": 16,
+      "-1.0756,-0.9383,-0.9643,0.8399": 14,
+      "-1.0756,-0.9383,1.0370,-1.1906": 10,
+      "-1.0756,-0.9383,1.0370,0.8399": 10,
+      "-1.0756,1.0658,-0.9643,-1.1906": 12,
+      "-1.0756,1.0658,-0.9643,0.8399": 6,
+      "-1.0756,1.0658,1.0370,-1.1906": 15,
+      "-1.0756,1.0658,1.0370,0.8399": 19,
+      "0.9297,-0.9383,-0.9643,-1.1906": 10,
+      "0.9297,-0.9383,-0.9643,0.8399": 39,
+      "0.9297,-0.9383,1.0370,-1.1906": 4,
+      "0.9297,-0.9383,1.0370,0.8399": 14,
+      "0.9297,1.0658,-0.9643,-1.1906": 7,
+      "0.9297,1.0658,-0.9643,0.8399": 10,
+      "0.9297,1.0658,1.0370,-1.1906": 17,
+      "0.9297,1.0658,1.0370,0.8399": 17
+    }
+  }
+}

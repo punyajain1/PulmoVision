@@ -1,8 +1,33 @@
-import React from "react";
-import { Printer, X, ShieldCheck, FileCheck, CheckCircle2, AlertTriangle, QrCode } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Printer, X, FileCheck } from "lucide-react";
+import modelService from "../services/modelService.js";
+import { getNextSteps } from "./nextSteps.js";
 
-export default function ClinicalReportModal({ result, onClose }) {
-  if (!result) return null;
+function pct(value) {
+  return typeof value === "number" ? `${Math.round(value * 1000) / 10}%` : "n/a";
+}
+
+export default function ClinicalReportModal(props) {
+  if (!props.result) return null;
+  return <ClinicalReportView {...props} />;
+}
+
+function ClinicalReportView({ result, onClose }) {
+  // Metrics come from the deployed model's metadata, never from hardcoded numbers.
+  const [modelInfo, setModelInfo] = useState(null);
+  const [modelInfoError, setModelInfoError] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    modelService.getModelInfo()
+      .then((info) => { if (!cancelled) setModelInfo(info); })
+      .catch(() => { if (!cancelled) setModelInfoError(true); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const metrics = modelInfo?.test_metrics;
+  const nextSteps = getNextSteps({ isHigh: result.prediction === "High Risk", lowConfidence: result.lowConfidence });
+  const hasReliability = typeof result.threshold === "number";
+  const explanation = (result.featureContributions || []).filter((item) => typeof item?.shap === "number");
 
   const handlePrint = () => {
     window.print();
@@ -54,7 +79,7 @@ export default function ClinicalReportModal({ result, onClose }) {
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <FileCheck size={20} color="#2563EB" />
             <span style={{ fontWeight: 700, color: "#0F172A", fontSize: "1rem" }}>
-              Official Clinical Diagnostic Dossier
+              Risk Assessment Report
             </span>
           </div>
           <div style={{ display: "flex", gap: 10 }}>
@@ -113,13 +138,13 @@ export default function ClinicalReportModal({ result, onClose }) {
           }}>
             <div>
               <div style={{ fontSize: "1.5rem", fontWeight: 900, color: "#0F172A", letterSpacing: "-0.03em" }}>
-                PULMOVISION CLINICAL INTELLIGENCE LABS
+                PULMODETECT
               </div>
               <div style={{ fontSize: "0.85rem", color: "#64748B", fontWeight: 500, marginTop: 2 }}>
-                Thoracic Oncology & Pulmonary Risk Stratification Division
+                Lung Cancer Risk Assessment Report (survey-based)
               </div>
               <div style={{ fontSize: "0.75rem", color: "#94A3B8", marginTop: 4 }}>
-                ISO-13485 Compliant ML Decision Support Pipeline • UID: {reportId}
+                Research prototype, not a certified medical device • Report ID: {reportId}
               </div>
             </div>
             <div style={{ textAlign: "right" }}>
@@ -184,34 +209,63 @@ export default function ClinicalReportModal({ result, onClose }) {
             }}>
               <div>
                 <div style={{ fontSize: "1.25rem", fontWeight: 800, color: isHigh ? "#991B1B" : "#166534" }}>
-                  {isHigh ? "Elevated Risk Stratification Detected" : "Low Risk Profile Established"}
+                  {isHigh ? "Higher estimated risk" : "Lower estimated risk"}
                 </div>
                 <div style={{ fontSize: "0.85rem", color: "#475569", marginTop: 4 }}>
-                  Evaluated via Sequential Forward Selection Bagging Ensemble Pipeline (SFS-Bagging).
+                  Bagging classifier with sequential forward feature selection.
                 </div>
                 <div style={{ fontSize: "0.75rem", color: "#64748B", marginTop: 4 }}>
-                  Model: {result.modelName || "BaggingClassifier"} • Accuracy: 89.3% • Sensitivity/Recall: 93.8%
+                  Model: {result.modelName || "unknown"}
+                  {result.modelVersion && ` v${result.modelVersion}`}
+                  {metrics
+                    ? ` • Held-out test set (n=${modelInfo.test_rows ?? "?"}): ROC-AUC ${metrics.roc_auc ?? "n/a"}, sensitivity ${pct(metrics.recall)}` +
+                      (typeof metrics.specificity === "number" ? `, specificity ${pct(metrics.specificity)}` : "") +
+                      `, accuracy ${pct(metrics.accuracy)}`
+                    : modelInfoError
+                      ? " • Model metrics unavailable"
+                      : " • Loading model metrics…"}
                 </div>
+                {hasReliability && (
+                  <div style={{ fontSize: "0.75rem", color: result.lowConfidence ? "#92400E" : "#64748B", marginTop: 4 }}>
+                    Screening threshold {pct(result.threshold)}
+                    {result.uncertainty && ` • Tree range ${pct(result.uncertainty.low)}–${pct(result.uncertainty.high)}`}
+                    {result.conformal && ` • Conformal check: ${result.conformal.status}`}
+                    {result.lowConfidence && " • LOW CONFIDENCE"}
+                    {result.outOfDistribution?.flag && ` • Unusual input: ${result.outOfDistribution.reasons.join(" ")}`}
+                  </div>
+                )}
+                {result.calibrated && (
+                  <div style={{ fontSize: "0.7rem", color: "#94A3B8", marginTop: 4 }}>
+                    Probability calibrated to the study data
+                    {typeof result.trainingPositiveRate === "number" && ` (${pct(result.trainingPositiveRate)} of participants had lung cancer)`};
+                    it is not a real-world chance of having lung cancer.
+                  </div>
+                )}
               </div>
               <div style={{ textAlign: "center", minWidth: 120 }}>
                 <div style={{ fontSize: "2rem", fontWeight: 900, color: isHigh ? "#DC2626" : "#059669" }}>
                   {probability}%
                 </div>
                 <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "#64748B", textTransform: "uppercase" }}>
-                  Risk Index
+                  Estimated probability
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Explainable AI (XAI) Factor Impacts */}
-          {result.featureContributions && result.featureContributions.length > 0 && (
+          {/* SHAP explanation from the deployed model */}
+          {explanation.length > 0 && (
             <div style={{ marginBottom: 24 }}>
               <div style={{ fontSize: "0.85rem", fontWeight: 800, color: "#0F172A", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>
-                3. Explainable AI (XAI) Key Risk Factor Attribution
+                3. What drove this estimate (SHAP)
               </div>
+              {typeof result.baseValue === "number" && (
+                <div style={{ fontSize: "0.75rem", color: "#64748B", marginBottom: 8 }}>
+                  Average estimate across training cases: {pct(result.baseValue)}. The model uses only the {explanation.length} answers listed.
+                </div>
+              )}
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {result.featureContributions.slice(0, 5).map((fc, i) => (
+                {explanation.map((fc, i) => (
                   <div key={i} style={{
                     display: "flex",
                     alignItems: "center",
@@ -222,12 +276,14 @@ export default function ClinicalReportModal({ result, onClose }) {
                     border: "1px solid #E2E8F0",
                     fontSize: "0.8rem"
                   }}>
-                    <span style={{ fontWeight: 600, color: "#334155" }}>{fc.label}</span>
+                    <span style={{ fontWeight: 600, color: "#334155" }}>
+                      {fc.label} ({fc.value === 1 ? "Yes" : fc.value === 0 ? "No" : fc.value})
+                    </span>
                     <span style={{
                       fontWeight: 700,
-                      color: fc.present ? "#DC2626" : "#059669"
+                      color: fc.shap > 0 ? "#DC2626" : "#059669"
                     }}>
-                      {fc.present ? `+${fc.impact}% risk weight` : `Absent (protective)`}
+                      {fc.shap > 0 ? "+" : ""}{Math.round(fc.shap * 1000) / 10} percentage points
                     </span>
                   </div>
                 ))}
@@ -246,47 +302,29 @@ export default function ClinicalReportModal({ result, onClose }) {
           }}>
             <div>
               <div style={{ fontSize: "0.8rem", fontWeight: 700, color: "#0F172A", marginBottom: 4 }}>
-                Recommended Clinical Action (NCCN & USPSTF Guidelines):
+                {nextSteps.title}:
               </div>
               <ul style={{ fontSize: "0.75rem", color: "#475569", paddingLeft: 18, margin: 0, lineHeight: 1.5 }}>
-                {isHigh ? (
-                  <>
-                    <li>Recommend Low-Dose CT (LDCT) thoracic screening for early pulmonary nodule detection.</li>
-                    <li>Referral to board-certified Pulmonologist for spirometry and diagnostic bronchoscopy evaluation.</li>
-                    <li>Enrollment in immediate clinical smoking cessation counseling if active smoking is reported.</li>
-                  </>
-                ) : (
-                  <>
-                    <li>Maintain healthy smoke-free lifestyle and avoid occupational aerosol hazards.</li>
-                    <li>Periodic routine health checks recommended annually.</li>
-                  </>
-                )}
+                {nextSteps.items.map((item) => <li key={item}>{item}</li>)}
               </ul>
+              <div style={{ fontSize: "0.65rem", color: "#94A3B8", marginTop: 6 }}>{nextSteps.footnote}</div>
               <div style={{ fontSize: "0.65rem", color: "#94A3B8", marginTop: 12 }}>
-                *Notice: This is a software decision support output designed to assist licensed clinicians and is not an independent diagnostic prescription.
+                *Notice: This is a risk estimate from self-reported survey answers, produced by a research prototype. It is not a diagnosis and must be interpreted by a qualified clinician.
               </div>
             </div>
 
-            {/* Verification Stamp & Signature */}
+            {/* Clinician review status and signature line */}
             <div style={{ textAlign: "center", borderLeft: "1px solid #E2E8F0", paddingLeft: 16 }}>
-              <div style={{
-                width: 70,
-                height: 70,
-                margin: "0 auto 8px",
-                border: "2px dashed #94A3B8",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                borderRadius: "8px",
-                background: "#F8FAFC"
-              }}>
-                <QrCode size={48} color="#0F172A" />
+              <div style={{ fontSize: "0.7rem", color: "#64748B", fontWeight: 600, marginTop: 8 }}>
+                {result.doctorReviewed ? "Marked as reviewed" : "Not yet reviewed by a clinician"}
               </div>
-              <div style={{ fontSize: "0.65rem", color: "#64748B", fontWeight: 600 }}>
-                VERIFIED DIGITAL DOSSIER
-              </div>
-              <div style={{ borderTop: "1px solid #0F172A", marginTop: 18, paddingTop: 4, fontSize: "0.7rem", fontWeight: 700 }}>
-                Authorized Clinician
+              {result.clinicalNotes && (
+                <div style={{ fontSize: "0.7rem", color: "#334155", marginTop: 6, textAlign: "left", whiteSpace: "pre-wrap" }}>
+                  {result.clinicalNotes}
+                </div>
+              )}
+              <div style={{ borderTop: "1px solid #0F172A", marginTop: 40, paddingTop: 4, fontSize: "0.7rem", fontWeight: 700 }}>
+                Clinician signature
               </div>
             </div>
           </div>

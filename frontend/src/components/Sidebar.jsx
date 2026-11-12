@@ -53,7 +53,7 @@ export default function Sidebar() {
           </div>
           <div>
             <div style={{ fontWeight: 800, fontSize: "1.05rem", letterSpacing: "-0.02em", color: "#FFFFFF" }}>
-              PulmoVision
+              PulmoDetect
             </div>
             <div style={{ fontSize: "0.72rem", color: "var(--text-caption)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>
               Clinical Intelligence

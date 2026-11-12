@@ -45,7 +45,7 @@ export default function LandingPage() {
           </div>
           <div>
             <div style={{ fontWeight: 800, fontSize: "1.15rem", color: "var(--text-heading)", letterSpacing: "-0.02em" }}>
-              PulmoVision
+              PulmoDetect
             </div>
             <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>
               Pulmonary Risk Assessment
@@ -232,7 +232,7 @@ export default function LandingPage() {
               }}>
                 <Activity size={18} />
               </div>
-              <span style={{ fontSize: "1.1rem", fontWeight: 800, color: "#FFFFFF" }}>PulmoVision</span>
+              <span style={{ fontSize: "1.1rem", fontWeight: 800, color: "#FFFFFF" }}>PulmoDetect</span>
             </div>
             <p style={{ fontSize: "0.85rem", color: "var(--text-caption)", maxWidth: 360, lineHeight: 1.6 }}>
               A high-precision minor project system developed to evaluate machine learning algorithms in early thoracic disease risk detection.
@@ -275,7 +275,7 @@ export default function LandingPage() {
           fontSize: "0.8rem",
           color: "var(--text-caption)"
         }}>
-          <div>&copy; 2026 PulmoVision Platform. All academic rights reserved.</div>
+          <div>&copy; 2026 PulmoDetect Platform. All academic rights reserved.</div>
           <div>Built with React, Express, MongoDB & FastAPI</div>
         </div>
       </footer>

@@ -1,7 +1,10 @@
 import React from "react";
 
-export default function RiskGauge({ probability = 0, size = 220 }) {
-  // probability is 0 to 1
+// probability and threshold are 0 to 1. When the model provides its screening
+// threshold, colours follow that threshold, because calibrated probabilities
+// on this dataset are high for everyone (most training participants had the
+// disease). Without a threshold (older records) fixed bands are used.
+export default function RiskGauge({ probability = 0, threshold = null, lowConfidence = false, size = 220 }) {
   const percentage = Math.min(Math.max(Math.round(probability * 100), 0), 100);
   
   // Radius and stroke
@@ -10,20 +13,21 @@ export default function RiskGauge({ probability = 0, size = 220 }) {
   const circumference = Math.PI * radius; // Half-circle perimeter
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
-  const getColor = (pct) => {
-    if (pct < 35) return "var(--color-success)"; // #16A34A
-    if (pct < 65) return "var(--color-amber)"; // #D97706
-    return "var(--color-rose)"; // #E11D48
-  };
-
   const getRiskTier = (pct) => {
+    if (typeof threshold === "number") {
+      const thresholdPct = Math.round(threshold * 1000) / 10;
+      if (lowConfidence) return { text: "Uncertain result", color: "var(--color-amber)" };
+      return probability >= threshold
+        ? { text: `Above threshold (${thresholdPct}%)`, color: "var(--color-rose)" }
+        : { text: `Below threshold (${thresholdPct}%)`, color: "var(--color-success)" };
+    }
     if (pct < 35) return { text: "Low Probability", color: "var(--color-success)" };
     if (pct < 65) return { text: "Moderate Risk", color: "var(--color-amber)" };
     return { text: "Elevated Risk", color: "var(--color-rose)" };
   };
 
   const tier = getRiskTier(percentage);
-  const strokeColor = getColor(percentage);
+  const strokeColor = tier.color;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
@@ -62,7 +66,7 @@ export default function RiskGauge({ probability = 0, size = 220 }) {
             {percentage}%
           </div>
           <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: 4, fontWeight: 500 }}>
-            Risk Confidence
+            Estimated probability
           </div>
         </div>
       </div>

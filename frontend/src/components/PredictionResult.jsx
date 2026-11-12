@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import RiskGauge from "./RiskGauge.jsx";
 import ClinicalReportModal from "./ClinicalReportModal.jsx";
 import predictionService from "../services/predictionService.js";
+import { getNextSteps } from "./nextSteps.js";
 import { 
   AlertTriangle, 
   CheckCircle, 
@@ -28,19 +29,53 @@ const REVIEW_FIELD_LABELS = {
   CHEST_PAIN: "Frequent Chest Pain",
 };
 
-export default function PredictionResult({ result, onUpdate }) {
-  if (!result) return null;
+// The 13 yes/no survey answers the What-If simulator can change.
+const SIM_FIELDS = [
+  { id: "SMOKING", label: "Smoking", modifiable: true },
+  { id: "ALCOHOL_CONSUMING", label: "Alcohol consumption", modifiable: true },
+  { id: "PEER_PRESSURE", label: "Peer pressure", modifiable: true },
+  { id: "YELLOW_FINGERS", label: "Yellow fingers" },
+  { id: "ANXIETY", label: "Anxiety" },
+  { id: "CHRONIC_DISEASE", label: "Chronic disease" },
+  { id: "FATIGUE", label: "Fatigue" },
+  { id: "ALLERGY", label: "Allergy" },
+  { id: "WHEEZING", label: "Wheezing" },
+  { id: "COUGHING", label: "Coughing" },
+  { id: "SHORTNESS_OF_BREATH", label: "Shortness of breath" },
+  { id: "SWALLOWING_DIFFICULTY", label: "Swallowing difficulty" },
+  { id: "CHEST_PAIN", label: "Chest pain" },
+];
 
+function surveyAnswers(inputData = {}) {
+  const answers = { GENDER: inputData.GENDER, AGE: Number(inputData.AGE) };
+  SIM_FIELDS.forEach(({ id }) => { answers[id] = Number(inputData[id]) === 1 ? 1 : 0; });
+  return answers;
+}
+
+// Real SHAP items have a numeric `shap`. Older records stored hand-made
+// weights instead; those are not shown as model explanations.
+function shapItems(result) {
+  return (result.featureContributions || []).filter((item) => typeof item?.shap === "number");
+}
+
+export default function PredictionResult(props) {
+  if (!props.result) return null;
+  // A new key resets all state (simulator, notes) when a different result is shown.
+  return <PredictionResultView key={props.result._id || "unsaved"} {...props} />;
+}
+
+function PredictionResultView({ result, onUpdate }) {
   const [showPdfModal, setShowPdfModal] = useState(false);
   const [showSimulator, setShowSimulator] = useState(false);
-  
-  // What-If Simulator State
-  const initialInputs = result.inputData || {};
-  const [simSmoking, setSimSmoking] = useState(Number(initialInputs.SMOKING) === 1);
-  const [simAlcohol, setSimAlcohol] = useState(Number(initialInputs.ALCOHOL_CONSUMING) === 1);
-  const [simCough, setSimCough] = useState(Number(initialInputs.COUGHING) === 1);
-  const [simDyspnea, setSimDyspnea] = useState(Number(initialInputs.SHORTNESS_OF_BREATH) === 1);
-  const [simWheeze, setSimWheeze] = useState(Number(initialInputs.WHEEZING) === 1);
+
+  // What-If simulator: changed answers, re-scored by the real model
+  const originalAnswers = useMemo(() => surveyAnswers(result.inputData), [result.inputData]);
+  const [simAnswers, setSimAnswers] = useState(originalAnswers);
+  const [simResult, setSimResult] = useState(null);
+  const [simLoading, setSimLoading] = useState(false);
+  const [simError, setSimError] = useState("");
+  const changedFields = SIM_FIELDS.filter(({ id }) => simAnswers[id] !== originalAnswers[id]);
+  const modelFeatures = result.modelFeatures || [];
   
   // Doctor notes state
   const [doctorNotes, setDoctorNotes] = useState(result.clinicalNotes || "");
@@ -50,32 +85,38 @@ export default function PredictionResult({ result, onUpdate }) {
 
   const isHigh = result.prediction === "High Risk";
   const probability = result.probability ?? 0;
+  const explanation = shapItems(result);
+  const nextSteps = getNextSteps({ isHigh, lowConfidence: result.lowConfidence });
 
-  // Calculate dynamic simulated risk
-  const calculateSimulatedRisk = () => {
-    let base = 0.05;
-    const age = Number(initialInputs.AGE) || 50;
-    if (age >= 65) base += 0.18;
-    else if (age >= 50) base += 0.10;
-    else if (age >= 35) base += 0.04;
+  useEffect(() => {
+    if (changedFields.length === 0) {
+      setSimResult(null);
+      setSimError("");
+      return undefined;
+    }
+    // Wait briefly so several quick toggles cause one request.
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      setSimLoading(true);
+      setSimError("");
+      try {
+        const res = await predictionService.simulatePrediction(simAnswers);
+        if (!cancelled) setSimResult(res);
+      } catch (err) {
+        if (!cancelled) { setSimResult(null); setSimError(err.message); }
+      } finally {
+        if (!cancelled) setSimLoading(false);
+      }
+    }, 350);
+    return () => { cancelled = true; clearTimeout(timer); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [simAnswers]);
 
-    if (simSmoking) base += 0.28;
-    if (Number(initialInputs.CHRONIC_DISEASE) === 1) base += 0.22;
-    if (simCough) base += 0.20;
-    if (Number(initialInputs.CHEST_PAIN) === 1) base += 0.18;
-    if (simDyspnea) base += 0.17;
-    if (Number(initialInputs.SWALLOWING_DIFFICULTY) === 1) base += 0.14;
-    if (simWheeze) base += 0.13;
-    if (Number(initialInputs.YELLOW_FINGERS) === 1 && simSmoking) base += 0.12;
-    if (simAlcohol) base += 0.10;
+  const toggleSim = (id) => setSimAnswers((prev) => ({ ...prev, [id]: prev[id] === 1 ? 0 : 1 }));
 
-    return Math.min(0.98, Math.max(0.05, Math.round(base * 100) / 100));
-  };
-
-  const simulatedRisk = calculateSimulatedRisk();
-  const simulatedPercent = Math.round(simulatedRisk * 100);
-  const originalPercent = Math.round(probability * 100);
-  const riskDelta = originalPercent - simulatedPercent;
+  const originalPercent = Math.round(probability * 1000) / 10;
+  const simulatedPercent = simResult ? Math.round(simResult.probability * 1000) / 10 : null;
+  const riskDelta = simulatedPercent === null ? 0 : Math.round((simulatedPercent - originalPercent) * 10) / 10;
 
   const handleSaveDoctorNotes = async () => {
     if (!result._id) return;
@@ -159,10 +200,10 @@ export default function PredictionResult({ result, onUpdate }) {
         <div className="grid-2" style={{ alignItems: "center", margin: "20px 0" }}>
           {/* Risk Gauge Visual */}
           <div style={{ display: "flex", justifyContent: "center", padding: "10px 0" }}>
-            <RiskGauge probability={probability} />
+            <RiskGauge probability={probability} threshold={result.threshold} lowConfidence={result.lowConfidence} />
           </div>
 
-          {/* Clinical Recommendations & Model Details */}
+          {/* Next steps & Model Details */}
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <div style={{
               padding: "16px",
@@ -171,23 +212,12 @@ export default function PredictionResult({ result, onUpdate }) {
               border: "1px solid var(--border-default)"
             }}>
               <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--text-heading)", marginBottom: 6 }}>
-                {isHigh ? "Immediate Recommended Next Steps (Clinical Guidelines):" : "Preventative Wellness Advice:"}
+                {nextSteps.title}
               </div>
               <ul style={{ fontSize: "0.85rem", color: "var(--text-body)", paddingLeft: 18, lineHeight: 1.6, margin: 0 }}>
-                {isHigh ? (
-                  <>
-                    <li>Schedule a consultation with a certified thoracic oncologist / pulmonologist.</li>
-                    <li>Inquire about low-dose computed tomography (LDCT) chest screening.</li>
-                    <li>Monitor progression of chronic cough or persistent chest discomfort.</li>
-                  </>
-                ) : (
-                  <>
-                    <li>Maintain smoke-free habits and avoid secondhand smoke environments.</li>
-                    <li>Undergo periodic regular clinical wellness check-ups.</li>
-                    <li>Engage in regular aerobic exercises to support healthy lung volume.</li>
-                  </>
-                )}
+                {nextSteps.items.map((item) => <li key={item}>{item}</li>)}
               </ul>
+              <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginTop: 6 }}>{nextSteps.footnote}</div>
             </div>
 
             <div style={{ 
@@ -208,56 +238,16 @@ export default function PredictionResult({ result, onUpdate }) {
           </div>
         </div>
 
-        {/* Explainable AI (XAI) Attribution Breakdown */}
-        {result.featureContributions && result.featureContributions.length > 0 && (
-          <div style={{
-            marginTop: 20,
-            padding: "16px",
-            borderRadius: "var(--radius-md)",
-            background: "#FFFFFF",
-            border: "1px solid var(--border-default)"
-          }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <Sparkles size={16} color="#7C3AED" />
-                <span style={{ fontSize: "0.9rem", fontWeight: 700, color: "var(--text-heading)" }}>
-                  Explainable AI (XAI) Biomarker Attribution
-                </span>
-              </div>
-              <span style={{ fontSize: "0.75rem", color: "#64748B", fontWeight: 600 }}>
-                SHAP-inspired Feature Contribution
-              </span>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              {result.featureContributions.slice(0, 6).map((item, idx) => (
-                <div key={idx} style={{
-                  padding: "10px 12px",
-                  borderRadius: "6px",
-                  background: item.present ? "#FEF2F2" : "#F0FDF4",
-                  border: item.present ? "1px solid #FECACA" : "1px solid #DCFCE7",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between"
-                }}>
-                  <div>
-                    <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#1E293B" }}>
-                      {item.label}
-                    </div>
-                    <div style={{ fontSize: "0.7rem", color: "#64748B" }}>
-                      Status: {item.present ? "Positive (Active Risk)" : "Absent (Protective)"}
-                    </div>
-                  </div>
-                  <span style={{
-                    fontSize: "0.85rem",
-                    fontWeight: 700,
-                    color: item.present ? "#DC2626" : "#16A34A"
-                  }}>
-                    {item.present ? `+${item.impact}%` : `-${Math.round(item.impact / 2)}%`}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
+        {/* Calibration, threshold, uncertainty, conformal set, unusual input */}
+        <ReliabilityPanel result={result} />
+
+        {/* SHAP explanation from the deployed model */}
+        {explanation.length > 0 && (
+          <ShapExplanation
+            items={explanation}
+            baseValue={result.baseValue}
+            probability={probability}
+          />
         )}
 
         {/* Interactive "What-If" Counterfactual Risk Simulator */}
@@ -272,7 +262,7 @@ export default function PredictionResult({ result, onUpdate }) {
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <Sliders size={16} color="#2563EB" />
               <span style={{ fontSize: "0.9rem", fontWeight: 700, color: "var(--text-heading)" }}>
-                Interactive "What-If" Risk Reduction Simulator
+                What-If Simulator
               </span>
             </div>
             <button
@@ -298,58 +288,87 @@ export default function PredictionResult({ result, onUpdate }) {
               border: "1px solid #E2E8F0"
             }}>
               <p style={{ fontSize: "0.75rem", color: "#64748B", margin: "0 0 12px" }}>
-                Toggle patient lifestyle changes or clinical interventions below to simulate how personalized actions lower risk in real time:
+                Change any answer to see how the same model would score it. Each change re-runs the deployed model; nothing is saved.
+                {modelFeatures.length > 0 && (
+                  <> The model only uses the answers marked <strong>used by model</strong>; changing the others never changes the result.</>
+                )}
               </p>
-              
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10, marginBottom: 16 }}>
-                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.8rem", cursor: "pointer" }}>
-                  <input type="checkbox" checked={!simSmoking} onChange={() => setSimSmoking(!simSmoking)} />
-                  <span>Quit Smoking Cigarettes</span>
-                </label>
-                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.8rem", cursor: "pointer" }}>
-                  <input type="checkbox" checked={!simAlcohol} onChange={() => setSimAlcohol(!simAlcohol)} />
-                  <span>Eliminate Alcohol Intake</span>
-                </label>
-                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.8rem", cursor: "pointer" }}>
-                  <input type="checkbox" checked={!simCough} onChange={() => setSimCough(!simCough)} />
-                  <span>Treat & Resolve Chronic Cough</span>
-                </label>
-                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.8rem", cursor: "pointer" }}>
-                  <input type="checkbox" checked={!simDyspnea} onChange={() => setSimDyspnea(!simDyspnea)} />
-                  <span>Manage Dyspnea (Inhaler/Therapy)</span>
-                </label>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 8, marginBottom: 16 }}>
+                {SIM_FIELDS.map(({ id, label, modifiable }) => {
+                  const used = modelFeatures.includes(id);
+                  const changed = simAnswers[id] !== originalAnswers[id];
+                  return (
+                    <label key={id} style={{
+                      display: "flex", alignItems: "center", gap: 8, fontSize: "0.8rem", cursor: "pointer",
+                      padding: "6px 8px", borderRadius: 6,
+                      background: changed ? "#EFF6FF" : "transparent",
+                      border: changed ? "1px solid #BFDBFE" : "1px solid transparent",
+                    }}>
+                      <input type="checkbox" checked={simAnswers[id] === 1} onChange={() => toggleSim(id)} />
+                      <span style={{ color: used ? "#0F172A" : "#64748B" }}>
+                        {label}
+                        {modifiable && <span style={{ color: "#059669", fontSize: "0.7rem" }}> · changeable</span>}
+                        {used && <span style={{ color: "#7C3AED", fontSize: "0.7rem", fontWeight: 600 }}> · used by model</span>}
+                      </span>
+                    </label>
+                  );
+                })}
               </div>
 
-              {/* Dynamic Delta Bar */}
               <div style={{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
+                gap: 12,
                 padding: "12px 16px",
-                background: simulatedPercent < originalPercent ? "#ECFDF5" : "#FFFFFF",
+                background: riskDelta < 0 ? "#ECFDF5" : riskDelta > 0 ? "#FFF1F2" : "#FFFFFF",
                 borderRadius: "6px",
-                border: simulatedPercent < originalPercent ? "1px solid #A7F3D0" : "1px solid #E2E8F0"
+                border: riskDelta < 0 ? "1px solid #A7F3D0" : riskDelta > 0 ? "1px solid #FECDD3" : "1px solid #E2E8F0"
               }}>
                 <div>
                   <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "#0F172A" }}>
-                    Simulated Risk Outcome: {simulatedPercent}% ({simulatedPercent >= 50 ? "High Risk" : "Low Risk"})
+                    {changedFields.length === 0
+                      ? "Change an answer above to run the model again."
+                      : simLoading
+                        ? "Running the model…"
+                        : simError
+                          ? `Could not run the model: ${simError}`
+                          : simResult
+                            ? `With these changes: ${simulatedPercent}% (${simResult.prediction})`
+                            : ""}
                   </div>
                   <div style={{ fontSize: "0.75rem", color: "#64748B" }}>
-                    Current Baseline: {originalPercent}%
+                    Original result: {originalPercent}% ({result.prediction})
+                    {changedFields.length > 0 && ` · Changed: ${changedFields.map((f) => f.label).join(", ")}`}
                   </div>
                 </div>
 
-                {riskDelta > 0 && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#059669", fontWeight: 700, fontSize: "0.95rem" }}>
-                    <TrendingDown size={20} />
-                    <span>-{riskDelta}% Risk Drop!</span>
-                  </div>
-                )}
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  {simResult && !simLoading && riskDelta !== 0 && (
+                    <span style={{ display: "flex", alignItems: "center", gap: 4, fontWeight: 700, fontSize: "0.9rem", color: riskDelta < 0 ? "#059669" : "#DC2626" }}>
+                      {riskDelta < 0 && <TrendingDown size={18} />}
+                      {riskDelta > 0 ? "+" : ""}{riskDelta} points
+                    </span>
+                  )}
+                  {changedFields.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setSimAnswers(originalAnswers)}
+                      style={{ fontSize: "0.75rem", color: "#2563EB", fontWeight: 600, background: "transparent", border: "none", cursor: "pointer" }}
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
               </div>
+              <p style={{ fontSize: "0.7rem", color: "#94A3B8", margin: "10px 0 0" }}>
+                This shows how the model responds, not how a real person's risk would change. The model learned from a small survey dataset.
+              </p>
             </div>
           ) : (
             <div style={{ fontSize: "0.8rem", color: "#64748B" }}>
-              Click expand to test how smoking cessation and symptom management directly decrease this patient's lung cancer probability.
+              Expand to change answers and see how the deployed model's estimate responds.
             </div>
           )}
         </div>
@@ -427,6 +446,127 @@ export default function PredictionResult({ result, onUpdate }) {
         />
       )}
     </>
+  );
+}
+
+const pct1 = (v) => `${Math.round(v * 1000) / 10}%`;
+
+const CONFORMAL_TEXT = {
+  confident: "Clear result: the conformal check agrees with this label.",
+  uncertain: "Not a clear call: at this answer pattern the model can't reliably separate high and low risk.",
+  atypical: "This answer pattern is unlike the training data, so the model has no reliable label for it.",
+};
+
+function ReliabilityPanel({ result }) {
+  // Older records (before model v2.1.0) have none of these fields.
+  if (typeof result.threshold !== "number") return null;
+  const { uncertainty, conformal, outOfDistribution: ood } = result;
+
+  return (
+    <div style={{
+      marginTop: 20,
+      padding: "16px",
+      borderRadius: "var(--radius-md)",
+      background: result.lowConfidence ? "#FFFBEB" : "#FFFFFF",
+      border: result.lowConfidence ? "1px solid #FDE68A" : "1px solid var(--border-default)"
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+        {result.lowConfidence
+          ? <AlertTriangle size={16} color="var(--color-amber)" />
+          : <ShieldCheck size={16} color="var(--color-success)" />}
+        <span style={{ fontSize: "0.9rem", fontWeight: 700, color: "var(--text-heading)" }}>
+          {result.lowConfidence ? "Low confidence: refer to a doctor rather than rely on this result" : "How reliable is this result?"}
+        </span>
+      </div>
+      <ul style={{ fontSize: "0.8rem", color: "var(--text-body)", paddingLeft: 18, lineHeight: 1.6, margin: 0 }}>
+        <li>
+          <strong>Label:</strong> {result.prediction} because the estimate {result.probability >= result.threshold ? "is at or above" : "is below"} the
+          screening threshold of {pct1(result.threshold)}. The threshold was chosen so the model catches at least 90% of positive cases in cross-validation.
+        </li>
+        {uncertainty && (
+          <li>
+            <strong>Range:</strong> the model's 100 trees give {pct1(uncertainty.low)} to {pct1(uncertainty.high)}
+            {" "}({uncertainty.percentiles?.[0]}th to {uncertainty.percentiles?.[1]}th percentile). A wider range means less agreement.
+          </li>
+        )}
+        {conformal && (
+          <li>
+            <strong>Conformal check ({Math.round(conformal.coverageTarget * 100)}% coverage):</strong> {CONFORMAL_TEXT[conformal.status] || conformal.status}
+          </li>
+        )}
+        {ood?.flag && ood.reasons.map((reason) => (
+          <li key={reason}><strong>Unusual input:</strong> {reason}</li>
+        ))}
+        {result.calibrated && (
+          <li>
+            <strong>What the percentage means:</strong> it is calibrated to the study data, in which
+            {typeof result.trainingPositiveRate === "number" ? ` ${pct1(result.trainingPositiveRate)} of` : " most"} participants
+            had lung cancer. It is not your real-world chance of having lung cancer, which is far lower in the general population.
+          </li>
+        )}
+      </ul>
+    </div>
+  );
+}
+
+function formatPoints(shap) {
+  const pts = Math.round(shap * 1000) / 10;
+  return `${pts > 0 ? "+" : ""}${pts} pts`;
+}
+
+function ShapExplanation({ items, baseValue, probability }) {
+  const maxAbs = Math.max(...items.map((i) => Math.abs(i.shap)), 0.0001);
+  return (
+    <div style={{
+      marginTop: 20,
+      padding: "16px",
+      borderRadius: "var(--radius-md)",
+      background: "#FFFFFF",
+      border: "1px solid var(--border-default)"
+    }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Sparkles size={16} color="#7C3AED" />
+          <span style={{ fontSize: "0.9rem", fontWeight: 700, color: "var(--text-heading)" }}>
+            Why the model gave this result
+          </span>
+        </div>
+        <span style={{ fontSize: "0.75rem", color: "#64748B", fontWeight: 600 }}>
+          Exact SHAP values from the deployed model
+        </span>
+      </div>
+      {typeof baseValue === "number" && (
+        <p style={{ fontSize: "0.75rem", color: "#64748B", margin: "0 0 12px" }}>
+          The average estimate across training cases is <strong>{Math.round(baseValue * 1000) / 10}%</strong>.
+          The answers below moved it to <strong>{Math.round(probability * 1000) / 10}%</strong>.
+          The model uses only these {items.length} answers; your other answers don't change the result.
+        </p>
+      )}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {items.map((item) => {
+          const up = item.shap > 0;
+          const width = `${Math.round((Math.abs(item.shap) / maxAbs) * 100)}%`;
+          const answer = item.value === 1 ? "Yes" : item.value === 0 ? "No" : String(item.value ?? "");
+          return (
+            <div key={item.encodedFeature || item.feature} style={{ display: "grid", gridTemplateColumns: "190px 1fr 80px", alignItems: "center", gap: 10, fontSize: "0.8rem" }}>
+              <div>
+                <span style={{ fontWeight: 600, color: "#1E293B" }}>{item.label}</span>
+                <span style={{ color: "#64748B" }}> · {answer}</span>
+              </div>
+              <div style={{ background: "#F1F5F9", borderRadius: 4, height: 10, overflow: "hidden" }}>
+                <div style={{ width, height: "100%", background: up ? "#F87171" : "#34D399" }} />
+              </div>
+              <span style={{ textAlign: "right", fontWeight: 700, color: up ? "#DC2626" : "#059669" }}>
+                {formatPoints(item.shap)}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <p style={{ fontSize: "0.7rem", color: "#94A3B8", margin: "10px 0 0" }}>
+        Red raises the estimate, green lowers it, in percentage points. This explains the model's behaviour, not medical causes.
+      </p>
+    </div>
   );
 }
 

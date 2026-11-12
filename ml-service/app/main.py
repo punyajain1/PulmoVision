@@ -1,12 +1,33 @@
+import logging
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import router
 
+logger = logging.getLogger("uvicorn.error")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Load the model at startup so the first request isn't slow. If loading
+    # fails, log why; requests then return 503 until artifacts exist.
+    from app.services import prediction_service
+
+    try:
+        prediction_service._load_artifacts()
+        logger.info("Model artifacts loaded.")
+    except Exception as e:
+        logger.error("Could not load model artifacts: %s", e)
+    yield
+
+
 app = FastAPI(
-    title="Lung Cancer Risk Prediction ML Service",
-    description="Serves predictions from a Bagging classifier trained with forward feature elimination.",
-    version="1.0.0",
+    title="PulmoDetect Survey Model API",
+    description="Lung cancer risk estimates from survey answers (Bagging classifier with forward feature selection), with exact SHAP explanations. Research use only, not a medical device.",
+    version="2.0.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -19,15 +40,6 @@ app.add_middleware(
 app.include_router(router)
 
 
-@app.on_event("startup")
-def startup_event():
-    try:
-        from app.services import prediction_service
-        prediction_service._load_artifacts()
-    except Exception:
-        pass
-
-
 @app.get("/")
 def root():
-    return {"message": "Lung Cancer Risk Prediction ML Service", "docs": "/docs"}
+    return {"message": "PulmoDetect Survey Model API", "docs": "/docs"}

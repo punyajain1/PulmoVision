@@ -5,9 +5,12 @@ if (rawUrl.endsWith("/")) rawUrl = rawUrl.slice(0, -1);
 if (!rawUrl.endsWith("/api")) rawUrl = `${rawUrl}/api`;
 const API_URL = rawUrl;
 
+// Free hosting (Render) puts the backend and ML service to sleep when idle,
+// and the first request can take ~60 s or more while they wake up. A short
+// timeout would report an error for a request that is still running.
 const api = axios.create({
   baseURL: API_URL,
-  timeout: 10000,
+  timeout: 120000,
 });
 
 api.interceptors.request.use((config) => {

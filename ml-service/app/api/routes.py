@@ -33,13 +33,15 @@ def features():
 
 
 @router.post("/predict", response_model=PredictionOutput, tags=["Prediction"])
-def predict(input_data: PredictionInput):
+def predict(input_data: PredictionInput, explain: bool = True):
+    """Risk prediction. With explain=true (default) it also returns exact SHAP
+    values; the What-If simulator calls it with explain=false for speed."""
     try:
-        return prediction_service.predict(input_data.model_dump())
+        return prediction_service.predict(input_data.model_dump(), explain=explain)
     except prediction_service.ArtifactsNotFoundError as e:
         raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Prediction failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {e}")
 
 
 @router.get("/results/model-comparison", tags=["Model"])

@@ -24,7 +24,7 @@ export default function Navbar() {
       case "/about":
         return "System Architecture & ML Benchmarks";
       default:
-        return "PulmoVision";
+        return "PulmoDetect";
     }
   };
 

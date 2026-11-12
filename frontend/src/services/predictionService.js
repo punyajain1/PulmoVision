@@ -25,6 +25,12 @@ async function getDashboardStats() {
   return data.data;
 }
 
+// What-If: runs the real model on changed answers. Nothing is saved.
+async function simulatePrediction(surveyAnswers) {
+  const { data } = await api.post("/predictions/simulate", surveyAnswers);
+  return data.data;
+}
+
 async function updateDoctorReview(id, reviewData) {
   const { data } = await api.patch(`/predictions/${id}/review`, reviewData);
   return data.data;
@@ -36,5 +42,6 @@ export default {
   getPrediction,
   deletePrediction,
   getDashboardStats,
+  simulatePrediction,
   updateDoctorReview,
 };

@@ -1,9 +1,10 @@
-from typing import Optional
-from pydantic import BaseModel, Field
+from typing import Literal, Optional, Union
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class PredictionInput(BaseModel):
-    GENDER: str = Field(..., description="M or F")
+    GENDER: Literal["M", "F"] = Field(..., description="M or F")
     AGE: int = Field(..., ge=1, le=120)
     SMOKING: int = Field(..., ge=0, le=1)
     YELLOW_FINGERS: int = Field(..., ge=0, le=1)
@@ -19,8 +20,8 @@ class PredictionInput(BaseModel):
     SWALLOWING_DIFFICULTY: int = Field(..., ge=0, le=1)
     CHEST_PAIN: int = Field(..., ge=0, le=1)
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "GENDER": "M",
                 "AGE": 65,
@@ -39,20 +40,76 @@ class PredictionInput(BaseModel):
                 "CHEST_PAIN": 1,
             }
         }
+    )
+
+
+class FeatureContribution(BaseModel):
+    feature: str
+    encodedFeature: str
+    label: str
+    value: Optional[Union[int, str]] = None
+    # Change in predicted probability caused by this answer, compared with the
+    # average training case (baseValue). baseValue + sum(shap) == probability.
+    shap: float
+
+
+class Uncertainty(BaseModel):
+    # Percentile range of the bootstrap trees' calibrated probabilities.
+    low: float
+    high: float
+    std: float
+    percentiles: list[int]
+
+
+class ConformalResult(BaseModel):
+    set: list[str]
+    # confident (one label), uncertain (both labels) or atypical (no label)
+    status: Literal["confident", "uncertain", "atypical"]
+    coverageTarget: float
+
+
+class OutOfDistribution(BaseModel):
+    flag: bool
+    reasons: list[str]
+    similarTrainingCases: Optional[int] = None
 
 
 class PredictionOutput(BaseModel):
     prediction: str
+    # Calibrated to the training data, where ~86% of participants had lung cancer.
     probability: float
+    calibrated: bool = False
+    threshold: float
+    trainingPositiveRate: Optional[float] = None
+    uncertainty: Uncertainty
+    conformal: ConformalResult
+    outOfDistribution: OutOfDistribution
+    lowConfidence: bool
     modelName: str
+    modelId: Optional[str] = None
+    modelVersion: Optional[str] = None
+    modelFeatures: list[str] = []
+    baseValue: Optional[float] = None
+    explanation: list[FeatureContribution] = []
 
 
 class ModelInfo(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
     model_name: str
+    model_id: Optional[str] = None
+    model_version: Optional[str] = None
     base_estimator: Optional[str] = None
     n_features_selected: Optional[int] = None
     n_features_total: Optional[int] = None
+    calibrated: Optional[bool] = None
+    threshold: Optional[float] = None
     test_metrics: Optional[dict] = None
+    test_reliability: Optional[dict] = None
+    calibration: Optional[dict] = None
+    training_positive_rate: Optional[float] = None
+    training_rows: Optional[int] = None
+    test_rows: Optional[int] = None
     trained_at: Optional[str] = None
 
 

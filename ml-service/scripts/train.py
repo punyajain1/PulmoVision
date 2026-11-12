@@ -26,6 +26,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import sklearn
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
@@ -36,6 +37,8 @@ from sklearn.ensemble import RandomForestClassifier, BaggingClassifier
 from sklearn.svm import SVC
 from sklearn.metrics import (
     accuracy_score,
+    average_precision_score,
+    balanced_accuracy_score,
     precision_score,
     recall_score,
     f1_score,
@@ -48,6 +51,14 @@ from app.config import settings
 from app.utils.data_utils import load_raw_dataset, clean_dataset, get_feature_columns
 from app.services.preprocessing_service import build_preprocessing_pipeline
 from app.services.forward_elimination_service import forward_feature_selection
+from app.services.reliability_service import (
+    brier,
+    conformal_set,
+    expected_calibration_error,
+    fit_reliability,
+    ood_check,
+    tree_probabilities,
+)
 
 
 def load_and_prepare_data():
@@ -114,6 +125,60 @@ def evaluate_model(model, X_test, y_test):
         metrics["roc_auc"] = round(roc_auc_score(y_test, y_proba), 4)
 
     return metrics, y_pred, y_proba
+
+
+def evaluate_deployed(model, reliability, X_test, y_test, test_ages):
+    """Metrics for the deployed model at its chosen threshold, plus conformal
+    coverage, uncertainty and unusual-input rates on the held-out test set."""
+    y_proba = model.predict_proba(X_test)[:, 1]
+    threshold = reliability["threshold"]["value"]
+    y_pred = (y_proba >= threshold).astype(int)
+    tn, fp, fn, tp = confusion_matrix(y_test, y_pred, labels=[0, 1]).ravel()
+
+    metrics = {
+        "threshold": threshold,
+        "accuracy": round(accuracy_score(y_test, y_pred), 4),
+        "precision": round(precision_score(y_test, y_pred, zero_division=0), 4),
+        "recall": round(recall_score(y_test, y_pred, zero_division=0), 4),
+        "specificity": round(tn / (tn + fp), 4) if (tn + fp) else None,
+        "balanced_accuracy": round(balanced_accuracy_score(y_test, y_pred), 4),
+        "f1_score": round(f1_score(y_test, y_pred, zero_division=0), 4),
+        "roc_auc": round(float(roc_auc_score(y_test, y_proba)), 4),
+        "pr_auc": round(float(average_precision_score(y_test, y_proba)), 4),
+        "brier": round(brier(y_test, y_proba), 4),
+        "ece": round(expected_calibration_error(y_test, y_proba), 4),
+        "confusion": {"tn": int(tn), "fp": int(fp), "fn": int(fn), "tp": int(tp)},
+    }
+
+    sets = [conformal_set(p, reliability["conformal"]) for p in y_proba]
+    labels = np.where(y_test == 1, "High Risk", "Low Risk")
+    covered = np.array([lab in s for lab, s in zip(labels, sets)])
+    sizes = np.array([len(s) for s in sets])
+    trees = tree_probabilities(model, X_test)
+    lo, hi = reliability["uncertainty"]["interval_percentiles"]
+    width = np.percentile(trees, hi, axis=0) - np.percentile(trees, lo, axis=0)
+    wrong = y_pred != y_test
+    ood = np.array([ood_check(a, x, reliability["ood"])["flag"] for a, x in zip(test_ages, X_test)])
+    pred_labels = np.where(y_pred == 1, "High Risk", "Low Risk")
+    # same rule as the API: confident = conformal set is exactly the label, and input not unusual
+    confident = np.array([s == [lab] for s, lab in zip(sets, pred_labels)]) & ~ood
+
+    test_reliability = {
+        "conformal_coverage_high": round(float(covered[y_test == 1].mean()), 4),
+        "conformal_coverage_low": round(float(covered[y_test == 0].mean()), 4) if (y_test == 0).any() else None,
+            "conformal_singletons": int((sizes == 1).sum()),
+        "confident_predictions": int(confident.sum()),
+        # Do the low-confidence flags pick out the model's mistakes?
+        "error_rate_confident": round(float(wrong[confident].mean()), 4) if confident.any() else None,
+        "error_rate_flagged": round(float(wrong[~confident].mean()), 4) if (~confident).any() else None,
+        "conformal_both": int((sizes == 2).sum()),
+        "conformal_empty": int((sizes == 0).sum()),
+        "mean_interval_width_correct": round(float(width[~wrong].mean()), 4) if (~wrong).any() else None,
+        "mean_interval_width_wrong": round(float(width[wrong].mean()), 4) if wrong.any() else None,
+        "unusual_input_rate": round(float(np.mean(ood)), 4),
+        "n_test": int(len(y_test)),
+    }
+    return metrics, y_pred, y_proba, test_reliability
 
 
 def compare_baseline_models(X_train, y_train, X_test, y_test):
@@ -208,8 +273,26 @@ def main():
         random_state=settings.RANDOM_STATE,
     )
     bagging_model.fit(X_train_fe, y_train)
-    final_metrics, y_pred, y_proba = evaluate_model(bagging_model, X_test_fe, y_test)
-    print(f"Final Bagging model metrics: {final_metrics}")
+    uncalibrated_metrics, _, uncalibrated_proba = evaluate_model(bagging_model, X_test_fe, y_test)
+    print(f"Bagging model (uncalibrated, threshold 0.5): {uncalibrated_metrics}")
+
+    print("Calibrating, choosing the threshold and fitting conformal / unusual-input statistics (training split only)...")
+    deployed_model, reliability = fit_reliability(
+        bagging_model,
+        X_train_fe,
+        y_train,
+        X_train_raw["AGE"].values,
+        selected_features,
+        settings.RANDOM_STATE,
+    )
+    final_metrics, y_pred, y_proba, test_reliability = evaluate_deployed(
+        deployed_model, reliability, X_test_fe, y_test, X_test_raw["AGE"].values
+    )
+    final_metrics["brier_uncalibrated"] = round(
+        float(np.mean((uncalibrated_proba - y_test) ** 2)), 4
+    )
+    print(f"Deployed model (calibrated, threshold {reliability['threshold']['value']}): {final_metrics}")
+    print(f"Test-set reliability: {test_reliability}")
 
     print("Step 8/8: Saving artifacts and evaluation plots...")
 
@@ -258,8 +341,13 @@ def main():
 
     # save model artifacts
     settings.MODEL_DIR.mkdir(parents=True, exist_ok=True)
-    joblib.dump(bagging_model, settings.MODEL_FILE)
+    # the deployed model is the calibrated wrapper around the Bagging model
+    joblib.dump(deployed_model, settings.MODEL_FILE)
     joblib.dump(preprocessor, settings.PREPROCESSING_FILE)
+    with open(settings.RELIABILITY_FILE, "w") as f:
+        json.dump(reliability, f, indent=2)
+    # training rows (selected features) used as the SHAP reference distribution
+    np.save(settings.SHAP_BACKGROUND_FILE, X_train_fe.astype(np.float64))
 
     with open(settings.FEATURES_FILE, "w") as f:
         json.dump(
@@ -274,14 +362,30 @@ def main():
 
     metadata = {
         "model_name": "BaggingClassifier",
+        "model_id": settings.MODEL_ID,
+        "model_version": settings.MODEL_VERSION,
         "base_estimator": "DecisionTreeClassifier",
         "trained_at": pd.Timestamp.utcnow().isoformat(),
         "n_features_selected": len(selected_features),
         "n_features_total": len(all_feature_names),
+        "calibrated": True,
+        "threshold": reliability["threshold"]["value"],
         "test_metrics": final_metrics,
+        "test_metrics_uncalibrated_threshold_0_5": uncalibrated_metrics,
+        "test_reliability": test_reliability,
+        "calibration": reliability["calibration"],
         "training_rows": int(X_train.shape[0]),
         "test_rows": int(X_test.shape[0]),
-        "dataset_path": str(settings.DATASET_FULL_PATH),
+        "training_positive_rate": reliability["calibration"]["training_positive_rate"],
+        "dataset_file": settings.DATASET_FULL_PATH.name,
+        "random_state": settings.RANDOM_STATE,
+        "library_versions": {
+            "python": sys.version.split()[0],
+            "scikit-learn": sklearn.__version__,
+            "numpy": np.__version__,
+            "pandas": pd.__version__,
+            "joblib": joblib.__version__,
+        },
         "training_duration_seconds": round(time.time() - start, 2),
     }
     with open(settings.METADATA_FILE, "w") as f:

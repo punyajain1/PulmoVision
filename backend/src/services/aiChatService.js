@@ -1,7 +1,7 @@
 const axios = require("axios");
 const env = require("../config/env");
 
-const CLINICAL_SYSTEM_PROMPT = `You are PulmoAI, an advanced clinical oncology and pulmonary risk decision-support AI assistant built for a full-stack clinical research platform.
+const CLINICAL_SYSTEM_PROMPT = `You are the PulmoDetect Assistant, an advanced clinical oncology and pulmonary risk decision-support AI assistant built for a full-stack clinical research platform.
 Your expertise covers:
 1. Lung Cancer Risk Factors: Heavy tobacco smoking pack-years, nicotine staining (yellow fingers), chronic obstructive pulmonary disease (COPD/asthma), persistent coughing, dyspnea (shortness of breath), and dysphagia.
 2. Clinical Screening Guidelines: USPSTF & NCCN recommendations for annual Low-Dose Computed Tomography (LDCT) screening for high-risk individuals aged 50-80 with a 20+ pack-year smoking history.
@@ -31,30 +31,31 @@ const KNOWLEDGE_FALLBACK = [
   {
     triggers: ["high", "what should i do", "reduce", "quit", "next step"],
     response:
-      "If your stratification index is High, the recommended clinical pathway is: 1) Schedule a consultation with a board-certified Pulmonologist; 2) Request pulmonary function spirometry and LDCT imaging; 3) Enroll in evidence-based smoking cessation therapy. Counterfactual simulations show smoking cessation reduces lifetime thoracic risk by over 50%.",
+      "If your stratification index is High, the recommended clinical pathway is: 1) Schedule a consultation with a board-certified Pulmonologist; 2) Request pulmonary function spirometry and LDCT imaging; 3) If you smoke, ask about evidence-based smoking cessation support. This tool estimates risk only and is not a diagnosis.",
   },
 ];
 
-async function generateAIResponse(userPrompt, conversationHistory = []) {
+const FALLBACK_ENGINE = "PulmoDetect built-in answers";
+
+async function generateAIResponse(userPrompt) {
   const apiKey = env.geminiApiKey;
 
-  // 1. Try Gemini API if key is present
+  // 1. Try Gemini API if a key is configured
   if (apiKey) {
     try {
-      const contents = [
-        {
-          role: "user",
-          parts: [{ text: `${CLINICAL_SYSTEM_PROMPT}\n\nUser Question: ${userPrompt}` }],
-        },
-      ];
-
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(env.geminiModel)}:generateContent`;
       const response = await axios.post(
         url,
-        { contents },
         {
-          headers: { "Content-Type": "application/json" },
-          timeout: 8000,
+          // Kept separate from the user's text so a message can't simply
+          // overwrite the instructions.
+          systemInstruction: { parts: [{ text: CLINICAL_SYSTEM_PROMPT }] },
+          contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+        },
+        {
+          // Key in a header, not the URL, so it doesn't end up in logs.
+          headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+          timeout: 15000,
         }
       );
 
@@ -62,29 +63,29 @@ async function generateAIResponse(userPrompt, conversationHistory = []) {
       if (candidate) {
         return {
           response: candidate,
-          engine: "Gemini 1.5 Flash (Google AI)",
+          engine: `Google Gemini (${env.geminiModel})`,
         };
       }
     } catch (err) {
-      console.warn("Gemini API call failed or timed out, falling back to local clinical engine:", err.message);
+      console.warn(
+        "Gemini API call failed, using built-in answers:",
+        err.response?.status || err.code || err.message
+      );
     }
   }
 
-  // 2. Fallback to built-in clinical knowledge base
+  // 2. Fallback to built-in answers
   const lower = (userPrompt || "").toLowerCase();
   for (const item of KNOWLEDGE_FALLBACK) {
     if (item.triggers.some((t) => lower.includes(t))) {
-      return {
-        response: item.response,
-        engine: "PulmoAI Clinical Engine",
-      };
+      return { response: item.response, engine: FALLBACK_ENGINE };
     }
   }
 
   return {
     response:
-      "PulmoAI evaluates multi-variable clinical surveys alongside uploaded radiological/medical reports using an SFS Bagging architecture. For definitive clinical assessment, please consult an attending pulmonologist or oncology specialist.",
-    engine: "PulmoAI Clinical Engine",
+      "PulmoDetect estimates lung cancer risk from survey answers using a Bagging classifier with sequential forward feature selection. It does not diagnose cancer. For a clinical assessment, please consult a pulmonologist or oncology specialist.",
+    engine: FALLBACK_ENGINE,
   };
 }
 

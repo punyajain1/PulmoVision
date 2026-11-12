@@ -47,7 +47,7 @@ export default function Register() {
               <Activity size={26} />
             </div>
             <div>
-              <h2 style={{ color: "#FFFFFF", margin: 0, fontSize: "1.4rem" }}>PulmoVision</h2>
+              <h2 style={{ color: "#FFFFFF", margin: 0, fontSize: "1.4rem" }}>PulmoDetect</h2>
               <p style={{ color: "#BFDBFE", margin: 0, fontSize: "0.85rem" }}>
                 Early-stage Pulmonary Diagnostic Model
               </p>
@@ -82,7 +82,7 @@ export default function Register() {
             </p>
           </div>
           <div style={{ marginTop: 24, fontSize: "0.75rem", color: "#94A3B8" }}>
-            &copy; 2026 PulmoVision Platform. Built for Minor Project Evaluation.
+            &copy; 2026 PulmoDetect Platform. Built for Minor Project Evaluation.
           </div>
         </div>
       </div>

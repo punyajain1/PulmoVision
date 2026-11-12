@@ -1,202 +1,117 @@
-const fs = require("fs");
-const path = require("path");
 const axios = require("axios");
 const env = require("../config/env");
 const ApiError = require("../utils/ApiError");
 
+// Every prediction, metric and explanation shown in the app must come from the
+// ML service. If it can't be reached, the request fails with a clear error
+// instead of falling back to made-up numbers.
 const mlClient = axios.create({
   baseURL: env.mlServiceUrl,
-  timeout: 3000,
+  timeout: env.mlTimeoutMs,
 });
 
-// Paths to cached ML artifacts and research results in ml-service
-const RESULTS_DIR = path.join(__dirname, "../../../ml-service/results");
-const ARTIFACTS_DIR = path.join(__dirname, "../../../ml-service/artifacts");
+function toApiError(err, what) {
+  const status = err.response?.status;
 
-function loadJsonSafe(filePath, defaultVal = {}) {
-  try {
-    if (fs.existsSync(filePath)) {
-      return JSON.parse(fs.readFileSync(filePath, "utf-8"));
-    }
-  } catch (err) {
-    console.warn(`Could not read ${filePath}:`, err.message);
+  // The ML service rejected the input (FastAPI validation error).
+  if (status === 422 || status === 400) {
+    const detail = err.response?.data?.detail;
+    console.warn(`ML service rejected ${what}:`, JSON.stringify(detail));
+    return new ApiError(502, `The risk model rejected the ${what} request.`, detail);
   }
-  return defaultVal;
+
+  if (status === 404) {
+    return new ApiError(404, `The ML service has no ${what} available.`);
+  }
+
+  // The service is up but crashed while handling the request.
+  if (status >= 500 && status !== 503) {
+    console.warn(`ML service error for ${what}:`, JSON.stringify(err.response?.data));
+    return new ApiError(502, `The risk model service failed while processing the ${what} request.`);
+  }
+
+  // Timeout, connection refused, DNS error, or 503 "artifacts not found".
+  console.warn(`ML service unavailable for ${what}:`, err.code || status || err.message);
+  return new ApiError(
+    503,
+    "The risk model service is unavailable or still starting up. Please try again in a minute."
+  );
 }
 
-// Explainable AI (XAI) feature impact calculator
-function computeFeatureContributions(inputData) {
-  const contributions = [];
-  
-  const weights = [
-    { field: "SMOKING", label: "Cigarette Smoking History", weight: 0.28, type: "lifestyle" },
-    { field: "CHRONIC_DISEASE", label: "Chronic Respiratory / Lung Disease", weight: 0.22, type: "clinical" },
-    { field: "COUGHING", label: "Persistent Chronic Cough", weight: 0.20, type: "symptom" },
-    { field: "CHEST_PAIN", label: "Thoracic / Chest Pain", weight: 0.18, type: "symptom" },
-    { field: "SHORTNESS_OF_BREATH", label: "Shortness of Breath (Dyspnea)", weight: 0.17, type: "symptom" },
-    { field: "SWALLOWING_DIFFICULTY", label: "Difficulty Swallowing (Dysphagia)", weight: 0.14, type: "symptom" },
-    { field: "WHEEZING", label: "Chronic Wheezing / Stridor", weight: 0.13, type: "symptom" },
-    { field: "YELLOW_FINGERS", label: "Nicotine Staining / Yellow Fingers", weight: 0.12, type: "lifestyle" },
-    { field: "ALCOHOL_CONSUMING", label: "Regular Alcohol Consumption", weight: 0.10, type: "lifestyle" },
-    { field: "ALLERGY", label: "Respiratory Allergies / Sensitivities", weight: 0.08, type: "clinical" },
-    { field: "FATIGUE", label: "Unexplained Fatigue / Malaise", weight: 0.08, type: "symptom" },
-    { field: "PEER_PRESSURE", label: "Environmental / Secondhand Smoke Exposure", weight: 0.07, type: "lifestyle" },
-    { field: "ANXIETY", label: "Elevated Stress & Anxiety Levels", weight: 0.05, type: "lifestyle" },
-  ];
+async function callPredict(inputData, explain) {
+  let response;
+  try {
+    response = await mlClient.post("/predict", inputData, { params: { explain } });
+  } catch (err) {
+    throw toApiError(err, "prediction");
+  }
 
-  let rawScore = 0.05; // Base population baseline probability
-  const age = Number(inputData.AGE) || 50;
-  
-  // Age factor curve
-  let ageImpact = 0;
-  if (age >= 65) ageImpact = 0.18;
-  else if (age >= 50) ageImpact = 0.10;
-  else if (age >= 35) ageImpact = 0.04;
-  
-  rawScore += ageImpact;
-  contributions.push({
-    feature: "AGE",
-    label: `Patient Age (${age} yrs)`,
-    category: "demographics",
-    impact: Math.round(ageImpact * 100),
-    positive: ageImpact > 0,
-    present: true,
-  });
+  const data = response.data || {};
+  if (typeof data.prediction !== "string" || typeof data.probability !== "number") {
+    throw new ApiError(502, "The risk model returned an unexpected response.");
+  }
+  return data;
+}
 
-  weights.forEach(({ field, label, weight, type }) => {
-    const isPresent = Number(inputData[field]) === 1;
-    if (isPresent) {
-      rawScore += weight;
-      contributions.push({
-        feature: field,
-        label,
-        category: type,
-        impact: Math.round(weight * 100),
-        positive: true,
-        present: true,
-      });
-    } else {
-      contributions.push({
-        feature: field,
-        label,
-        category: type,
-        impact: Math.round(weight * 50),
-        positive: false,
-        present: false,
-      });
-    }
-  });
-
-  // Bound probability between 0.05 and 0.98
-  const finalProbability = Math.min(0.98, Math.max(0.05, rawScore));
-  
-  // Sort descending by highest impact
-  contributions.sort((a, b) => Math.abs(b.impact) - Math.abs(a.impact));
-
+// Calibration flag, threshold, uncertainty range, conformal set and
+// unusual-input check, passed through unchanged from the ML service.
+function reliabilityFields(data) {
   return {
-    probability: Math.round(finalProbability * 1000) / 1000,
-    contributions,
+    calibrated: Boolean(data.calibrated),
+    threshold: typeof data.threshold === "number" ? data.threshold : null,
+    trainingPositiveRate: typeof data.trainingPositiveRate === "number" ? data.trainingPositiveRate : null,
+    uncertainty: data.uncertainty || null,
+    conformal: data.conformal || null,
+    outOfDistribution: data.outOfDistribution || null,
+    lowConfidence: Boolean(data.lowConfidence),
   };
 }
 
 async function getPrediction(inputData) {
-  // 1. Try Python microservice first
-  try {
-    const response = await mlClient.post("/predict", inputData);
-    if (response.data && response.data.prediction) {
-      const { contributions } = computeFeatureContributions(inputData);
-      return {
-        ...response.data,
-        featureContributions: contributions,
-        engine: "FastAPI-Bagging",
-      };
-    }
-  } catch (err) {
-    // Microservice offline -> fall back to validated statistical scoring engine
-    console.info("Python ML microservice offline, activating native clinical scoring engine.");
-  }
-
-  // 2. High-performance fallback scoring engine
-  const { probability, contributions } = computeFeatureContributions(inputData);
-  const isHigh = probability >= 0.50;
-
+  const data = await callPredict(inputData, true);
   return {
-    prediction: isHigh ? "High Risk" : "Low Risk",
-    probability,
-    modelName: "Bagging Classifier (Sequential Forward Selection)",
-    featureContributions: contributions,
-    engine: "Clinical-Ensemble-Engine",
+    prediction: data.prediction,
+    probability: data.probability,
+    ...reliabilityFields(data),
+    modelName: data.modelName || "unknown",
+    modelVersion: data.modelVersion || null,
+    engine: "FastAPI ML service",
+    // Input columns the model actually uses; other answers can't change the result.
+    modelFeatures: Array.isArray(data.modelFeatures) ? data.modelFeatures : [],
+    // Exact SHAP values from the model: baseValue + sum(shap) == probability.
+    baseValue: typeof data.baseValue === "number" ? data.baseValue : null,
+    featureContributions: Array.isArray(data.explanation) ? data.explanation : [],
   };
 }
 
-async function getModelInfo() {
+// What-If: re-runs the real model on changed answers. Nothing is saved.
+async function simulatePrediction(inputData) {
+  const data = await callPredict(inputData, false);
+  return {
+    prediction: data.prediction,
+    probability: data.probability,
+    ...reliabilityFields(data),
+    modelVersion: data.modelVersion || null,
+  };
+}
+
+async function getFromMl(path, what) {
   try {
-    const response = await mlClient.get("/model/info");
+    const response = await mlClient.get(path);
     return response.data;
   } catch (err) {
-    const metadata = loadJsonSafe(path.join(ARTIFACTS_DIR, "model_metadata.json"), {
-      model_name: "BaggingClassifier",
-      base_estimator: "DecisionTreeClassifier",
-      n_features_selected: 1,
-      n_features_total: 29,
-      test_metrics: {
-        accuracy: 0.8571,
-        precision: 0.8571,
-        recall: 1.0,
-        f1_score: 0.9231,
-        roc_auc: 0.9375,
-      },
-      training_rows: 220,
-      test_rows: 56,
-    });
-    return metadata;
+    throw toApiError(err, what);
   }
 }
 
-async function getModelComparison() {
-  try {
-    const response = await mlClient.get("/results/model-comparison");
-    return response.data;
-  } catch (err) {
-    const comparison = loadJsonSafe(path.join(RESULTS_DIR, "model_comparison.json"), {
-      without_forward_elimination: {
-        LogisticRegression: { accuracy: 0.9107, precision: 0.9216, recall: 0.9792, f1_score: 0.9495, roc_auc: 0.9479 },
-        DecisionTree: { accuracy: 0.9107, precision: 0.9778, recall: 0.9167, f1_score: 0.9462, roc_auc: 0.9049 },
-        RandomForest: { accuracy: 0.9286, precision: 0.9583, recall: 0.9583, f1_score: 0.9583, roc_auc: 0.9557 },
-        SVM: { accuracy: 0.8571, precision: 0.8846, recall: 0.9583, f1_score: 0.9200, roc_auc: 0.9375 },
-        Bagging: { accuracy: 0.8929, precision: 0.9375, recall: 0.9375, f1_score: 0.9375, roc_auc: 0.9375 },
-      },
-      with_forward_elimination: {
-        LogisticRegression: { accuracy: 0.8571, precision: 0.8571, recall: 1.0, f1_score: 0.9231, roc_auc: 0.8950 },
-        DecisionTree: { accuracy: 0.8571, precision: 0.8571, recall: 1.0, f1_score: 0.9231, roc_auc: 0.8800 },
-        RandomForest: { accuracy: 0.8929, precision: 0.9130, recall: 0.9545, f1_score: 0.9333, roc_auc: 0.9250 },
-        SVM: { accuracy: 0.8571, precision: 0.8571, recall: 1.0, f1_score: 0.9231, roc_auc: 0.8850 },
-        Bagging: { accuracy: 0.8929, precision: 0.9375, recall: 0.9375, f1_score: 0.9375, roc_auc: 0.9375 },
-      },
-    });
-    return comparison;
-  }
-}
-
-async function getFeatureElimination() {
-  try {
-    const response = await mlClient.get("/results/feature-elimination");
-    return response.data;
-  } catch (err) {
-    const elimination = loadJsonSafe(path.join(RESULTS_DIR, "forward_elimination_history.json"), [
-      { step: 1, feature_added: "GENDER_F", cv_score: 0.8636, improvement: 0.8636 },
-      { step: 2, feature_added: "SMOKING_1", cv_score: 0.8929, improvement: 0.0293 },
-      { step: 3, feature_added: "COUGHING_1", cv_score: 0.9107, improvement: 0.0178 },
-      { step: 4, feature_added: "CHEST_PAIN_1", cv_score: 0.9286, improvement: 0.0179 },
-    ]);
-    return elimination;
-  }
-}
+const getModelInfo = () => getFromMl("/model/info", "model information");
+const getModelComparison = () => getFromMl("/results/model-comparison", "model comparison");
+const getFeatureElimination = () => getFromMl("/results/feature-elimination", "feature selection history");
 
 module.exports = {
   getPrediction,
+  simulatePrediction,
   getModelInfo,
   getModelComparison,
   getFeatureElimination,
-  computeFeatureContributions,
 };

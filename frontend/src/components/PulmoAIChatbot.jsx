@@ -46,7 +46,7 @@ export default function PulmoAIChatbot() {
   const [messages, setMessages] = useState([
     {
       sender: "bot",
-      text: "Hello! I am the PulmoVision Assistant, your clinical decision support assistant. You can ask me about screening guidelines, model architecture, or symptom risk factors.",
+      text: "Hello! I am the PulmoDetect Assistant, your clinical decision support assistant. You can ask me about screening guidelines, model architecture, or symptom risk factors.",
     },
   ]);
   const [inputText, setInputText] = useState("");
@@ -74,7 +74,7 @@ export default function PulmoAIChatbot() {
     try {
       const { data } = await api.post("/ai/chat", { message: text });
       const botReply = data?.data?.response || data?.response;
-      const engine = data?.data?.engine || "PulmoVision Clinical Engine";
+      const engine = data?.data?.engine || "PulmoDetect Clinical Engine";
       setMessages((prev) => [
         ...prev, 
         { 
@@ -97,7 +97,7 @@ export default function PulmoAIChatbot() {
 
       if (!matchedResponse) {
         matchedResponse =
-          "PulmoVision evaluates multi-variable clinical surveys alongside uploaded radiological/medical reports using an SFS Bagging architecture. For medical diagnostics, please consult an attending pulmonologist or oncology specialist.";
+          "PulmoDetect evaluates multi-variable clinical surveys alongside uploaded radiological/medical reports using an SFS Bagging architecture. For medical diagnostics, please consult an attending pulmonologist or oncology specialist.";
       }
 
       setMessages((prev) => [
@@ -105,7 +105,7 @@ export default function PulmoAIChatbot() {
         { 
           sender: "bot", 
           text: matchedResponse,
-          engine: "PulmoVision Clinical Engine (Offline Mode)"
+          engine: "PulmoDetect Clinical Engine (Offline Mode)"
         }
       ]);
     }
@@ -136,7 +136,7 @@ export default function PulmoAIChatbot() {
           onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
         >
           <Sparkles size={18} />
-          <span>Ask PulmoVision Assistant</span>
+          <span>Ask PulmoDetect Assistant</span>
         </button>
       )}
 
@@ -175,7 +175,7 @@ export default function PulmoAIChatbot() {
                 <Bot size={18} color="#FFFFFF" />
               </div>
               <div>
-                <div style={{ fontWeight: 800, fontSize: "0.95rem" }}>PulmoVision Intelligence</div>
+                <div style={{ fontWeight: 800, fontSize: "0.95rem" }}>PulmoDetect Intelligence</div>
                 <div style={{ fontSize: "0.7rem", color: "#94A3B8" }}>Clinical Decision Assistant</div>
               </div>
             </div>
@@ -294,7 +294,7 @@ export default function PulmoAIChatbot() {
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSend()}
-              placeholder="Ask PulmoVision anything..."
+              placeholder="Ask PulmoDetect anything..."
               style={{
                 flex: 1,
                 padding: "8px 12px",

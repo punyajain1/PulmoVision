@@ -1,7 +1,11 @@
 const Prediction = require("../models/Prediction");
 
 async function getStats(userId) {
-  const predictions = await Prediction.find({ userId }).sort({ createdAt: -1 });
+  // Uploaded files aren't needed for the dashboard and can be several MB each.
+  const predictions = await Prediction.find({ userId })
+    .select("-reports")
+    .sort({ createdAt: -1 })
+    .lean();
 
   const total = predictions.length;
   const highRisk = predictions.filter((p) => p.prediction === "High Risk").length;

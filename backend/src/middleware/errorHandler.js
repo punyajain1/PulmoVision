@@ -1,4 +1,5 @@
 const ApiError = require("../utils/ApiError");
+const env = require("../config/env");
 
 function notFound(req, res, next) {
   next(new ApiError(404, `Route not found: ${req.originalUrl}`));
@@ -29,8 +30,10 @@ function errorHandler(err, req, res, next) {
     message = "Invalid identifier supplied";
   }
 
-  if (process.env.NODE_ENV !== "production" && statusCode === 500) {
+  if (statusCode === 500) {
     console.error(err);
+    // Don't send internal error text (stack details, DB messages) to clients.
+    if (env.isProduction) message = "Unexpected server error";
   }
 
   const response = { success: false, message };
