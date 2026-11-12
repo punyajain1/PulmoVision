@@ -1,0 +1,51 @@
+version: "3.9"
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  ml-service:
+    build: ./ml-service
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./ml-service/data:/app/data
+      - ./ml-service/artifacts:/app/artifacts
+      - ./ml-service/results:/app/results
+    environment:
+      DATASET_PATH: data/lung_cancer.csv
+      MODEL_PATH: artifacts
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mongo
+      - ml-service
+    environment:
+      PORT: 5000
+      MONGODB_URI: mongodb://mongo:27017/lung_cancer_risk
+      JWT_SECRET: change-this-to-a-long-random-string
+      ML_SERVICE_URL: http://ml-service:8000
+      CLIENT_URL: http://localhost:5173
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    environment:
+      VITE_API_URL: http://localhost:5000/api
+
+volumes:
+  mongo_data:

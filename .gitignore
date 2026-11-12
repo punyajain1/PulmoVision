@@ -1,0 +1,27 @@
+# Node
+node_modules/
+frontend/dist/
+npm-debug.log*
+
+# Env
+.env
+backend/.env
+frontend/.env
+ml-service/.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# ML artifacts / data (regenerate locally, don't commit large binaries)
+ml-service/data/*.csv
+ml-service/artifacts/*.joblib
+ml-service/results/*.png
+
+# OS
+.DS_Store
+
+# OCR Cache
+backend/.ocr-cache/

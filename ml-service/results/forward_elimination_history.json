@@ -1,0 +1,15 @@
+[
+  {
+    "step": 1,
+    "feature_added": "GENDER_F",
+    "cv_score": 0.8636,
+    "improvement": Infinity
+  },
+  {
+    "step": 2,
+    "feature_added": "GENDER_M",
+    "cv_score": 0.8636,
+    "improvement": 0.0,
+    "stopped": true
+  }
+]

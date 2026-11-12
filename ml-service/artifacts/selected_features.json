@@ -1,0 +1,53 @@
+{
+  "raw_feature_columns": [
+    "GENDER",
+    "AGE",
+    "SMOKING",
+    "YELLOW_FINGERS",
+    "ANXIETY",
+    "PEER_PRESSURE",
+    "CHRONIC_DISEASE",
+    "FATIGUE",
+    "ALLERGY",
+    "WHEEZING",
+    "ALCOHOL_CONSUMING",
+    "COUGHING",
+    "SHORTNESS_OF_BREATH",
+    "SWALLOWING_DIFFICULTY",
+    "CHEST_PAIN"
+  ],
+  "encoded_feature_names": [
+    "AGE",
+    "GENDER_F",
+    "GENDER_M",
+    "SMOKING_0",
+    "SMOKING_1",
+    "YELLOW_FINGERS_0",
+    "YELLOW_FINGERS_1",
+    "ANXIETY_0",
+    "ANXIETY_1",
+    "PEER_PRESSURE_0",
+    "PEER_PRESSURE_1",
+    "CHRONIC_DISEASE_0",
+    "CHRONIC_DISEASE_1",
+    "FATIGUE_0",
+    "FATIGUE_1",
+    "ALLERGY_0",
+    "ALLERGY_1",
+    "WHEEZING_0",
+    "WHEEZING_1",
+    "ALCOHOL_CONSUMING_0",
+    "ALCOHOL_CONSUMING_1",
+    "COUGHING_0",
+    "COUGHING_1",
+    "SHORTNESS_OF_BREATH_0",
+    "SHORTNESS_OF_BREATH_1",
+    "SWALLOWING_DIFFICULTY_0",
+    "SWALLOWING_DIFFICULTY_1",
+    "CHEST_PAIN_0",
+    "CHEST_PAIN_1"
+  ],
+  "selected_features": [
+    "GENDER_F"
+  ]
+}
