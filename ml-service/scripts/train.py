@@ -175,7 +175,12 @@ def main():
     results_without_fe = compare_baseline_models(X_train, y_train, X_test, y_test)
 
     print("Step 6/8: Running forward feature elimination (train set + CV only)...")
-    fe_estimator = DecisionTreeClassifier(random_state=settings.RANDOM_STATE)
+    # class_weight="balanced": with ~86% positives an unweighted tree predicts
+    # "positive" for every row, so every feature scores 0.5 balanced accuracy
+    # and selection stops after one arbitrary feature.
+    fe_estimator = DecisionTreeClassifier(
+        max_depth=4, class_weight="balanced", random_state=settings.RANDOM_STATE
+    )
     selected_features, fe_history = forward_feature_selection(
         fe_estimator,
         X_train,
@@ -196,7 +201,9 @@ def main():
 
     print("Training primary Bagging model on selected features...")
     bagging_model = BaggingClassifier(
-        estimator=DecisionTreeClassifier(random_state=settings.RANDOM_STATE),
+        estimator=DecisionTreeClassifier(
+            class_weight="balanced", random_state=settings.RANDOM_STATE
+        ),
         n_estimators=100,
         random_state=settings.RANDOM_STATE,
     )

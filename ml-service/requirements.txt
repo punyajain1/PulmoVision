@@ -1,9 +1,11 @@
 fastapi==0.115.0
 uvicorn[standard]==0.30.6
-pandas==2.2.2
-numpy==1.26.4
-scikit-learn==1.5.1
-joblib==1.4.2
+# These four must match the versions that trained artifacts/*.joblib
+# (Colab, 2026-11-12). Change them only together with a retrain.
+pandas==2.2.3
+numpy==2.4.6
+scikit-learn==1.6.1
+joblib==1.6.0
 matplotlib==3.9.2
 seaborn==0.13.2
 pydantic==2.8.2

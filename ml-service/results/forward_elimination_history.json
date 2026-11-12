@@ -1,15 +1,33 @@
 [
   {
     "step": 1,
-    "feature_added": "GENDER_F",
-    "cv_score": 0.8636,
-    "improvement": Infinity
+    "feature_added": "ALLERGY",
+    "cv_score": 0.7333,
+    "improvement": null
   },
   {
     "step": 2,
-    "feature_added": "GENDER_M",
-    "cv_score": 0.8636,
-    "improvement": 0.0,
+    "feature_added": "SWALLOWING_DIFFICULTY",
+    "cv_score": 0.7737,
+    "improvement": 0.0404
+  },
+  {
+    "step": 3,
+    "feature_added": "PEER_PRESSURE",
+    "cv_score": 0.8228,
+    "improvement": 0.0491
+  },
+  {
+    "step": 4,
+    "feature_added": "COUGHING",
+    "cv_score": 0.8368,
+    "improvement": 0.014
+  },
+  {
+    "step": 5,
+    "feature_added": "WHEEZING",
+    "cv_score": 0.8307,
+    "improvement": -0.0061,
     "stopped": true
   }
 ]

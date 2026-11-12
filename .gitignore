@@ -17,7 +17,10 @@ venv/
 
 # ML artifacts / data (regenerate locally, don't commit large binaries)
 ml-service/data/*.csv
-ml-service/artifacts/*.joblib
+# the deployed model (~250 KB) is committed so Render can build the ML service
+# from GitHub; keep training zips and other large files out
+ml-service/*.zip
+*.zip
 ml-service/results/*.png
 
 # OS
