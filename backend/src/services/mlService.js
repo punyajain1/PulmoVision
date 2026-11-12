@@ -105,12 +105,26 @@ async function getFromMl(path, what) {
 }
 
 const getModelInfo = () => getFromMl("/model/info", "model information");
+
+// Quick status check for the status badge. Uses /model/info, which only
+// succeeds when the model is actually loaded. A short timeout keeps the badge
+// responsive; the request still wakes a sleeping free-tier service.
+async function checkHealth() {
+  try {
+    const { data } = await mlClient.get("/model/info", { timeout: 8000 });
+    return { status: "ok", modelVersion: data?.model_version || null };
+  } catch (err) {
+    const status = err.response?.status;
+    return { status: status === 503 ? "no_model" : "unavailable" };
+  }
+}
 const getModelComparison = () => getFromMl("/results/model-comparison", "model comparison");
 const getFeatureElimination = () => getFromMl("/results/feature-elimination", "feature selection history");
 
 module.exports = {
   getPrediction,
   simulatePrediction,
+  checkHealth,
   getModelInfo,
   getModelComparison,
   getFeatureElimination,

@@ -703,3 +703,11 @@ tbody tr:hover {
     box-shadow: none !important;
   }
 }
+
+/* Spinning icon (status badge) */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.spin {
+  animation: spin 1s linear infinite;
+}

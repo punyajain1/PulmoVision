@@ -1,7 +1,8 @@
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
-import { LogOut, Bell, ShieldCheck } from "lucide-react";
+import { LogOut } from "lucide-react";
+import ServiceStatusBadge from "./ServiceStatusBadge.jsx";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -21,6 +22,8 @@ export default function Navbar() {
         return "New Risk Assessment";
       case "/history":
         return "Patient Prediction History";
+      case "/research":
+        return "Research Benchmarks";
       case "/about":
         return "System Architecture & ML Benchmarks";
       default:
@@ -48,27 +51,13 @@ export default function Navbar() {
           {getPageTitle(location.pathname)}
         </h2>
         <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
-          College Minor Project Edition &bull; Intelligent Diagnostic Support
+          Lung cancer risk estimation &bull; Research prototype, not a diagnosis
         </div>
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        {/* Real-time status pill */}
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          padding: "4px 12px",
-          background: "var(--color-success-bg)",
-          color: "var(--color-success)",
-          borderRadius: "var(--radius-full)",
-          fontSize: "0.8rem",
-          fontWeight: 600,
-          border: "1px solid #A7F3D0"
-        }}>
-          <ShieldCheck size={14} />
-          Model Service Online
-        </div>
+        {/* Live backend + ML service status */}
+        <ServiceStatusBadge />
 
         {user && (
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>

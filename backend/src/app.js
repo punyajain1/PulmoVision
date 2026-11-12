@@ -8,6 +8,7 @@ const env = require("./config/env");
 const swaggerSpec = require("./config/swagger");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
 const { authLimiter, chatLimiter } = require("./middleware/rateLimits");
+const mlService = require("./services/mlService");
 
 const authRoutes = require("./routes/authRoutes");
 const predictionRoutes = require("./routes/predictionRoutes");
@@ -55,8 +56,10 @@ app.get("/", (req, res) => {
   });
 });
 
-app.get("/api/health", (req, res) => {
-  res.json({ success: true, data: { status: "ok" } });
+// Backend status, plus the ML service's status for the app's status badge.
+app.get("/api/health", async (req, res) => {
+  const ml = await mlService.checkHealth();
+  res.json({ success: true, data: { status: "ok", ml } });
 });
 
 app.use("/api/auth/login", authLimiter);
