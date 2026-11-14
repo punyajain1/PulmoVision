@@ -48,7 +48,7 @@ export default function Login() {
             <div>
               <h2 style={{ color: "#FFFFFF", margin: 0, fontSize: "1.4rem" }}>PulmoDetect</h2>
               <p style={{ color: "#BFDBFE", margin: 0, fontSize: "0.85rem" }}>
-                Early-stage Pulmonary Diagnostic Model
+                Lung Cancer Risk Assessment
               </p>
             </div>
           </div>

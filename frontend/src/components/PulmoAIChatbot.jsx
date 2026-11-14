@@ -97,7 +97,7 @@ export default function PulmoAIChatbot() {
 
       if (!matchedResponse) {
         matchedResponse =
-          "PulmoDetect evaluates multi-variable clinical surveys alongside uploaded radiological/medical reports using an SFS Bagging architecture. For medical diagnostics, please consult an attending pulmonologist or oncology specialist.";
+          "PulmoDetect estimates lung cancer risk from a survey using a Bagging classifier with sequential forward feature selection. It does not diagnose cancer. For any medical concern, please consult a pulmonologist or oncology specialist.";
       }
 
       setMessages((prev) => [

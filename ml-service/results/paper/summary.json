@@ -1,0 +1,1161 @@
+{
+  "run_info": {
+    "n_repeats": 10,
+    "n_splits": 5,
+    "n_split_seeds": 20,
+    "seed": 42,
+    "python": "3.11.14",
+    "scikit-learn": "1.6.1",
+    "numpy": "2.4.6",
+    "pandas": "2.2.3",
+    "machine": "arm64",
+    "seconds": 47.3
+  },
+  "dataset": {
+    "rows_raw": 309,
+    "rows_dedup": 276,
+    "exact_duplicates_removed": 33,
+    "positive_rate_raw": 0.8738,
+    "positive_rate_dedup": 0.8623,
+    "negatives_dedup": 38,
+    "conflicting_feature_patterns": 1,
+    "test_rows_with_copy_in_train_mean": 0.196,
+    "test_rows_with_copy_in_train_range": [
+      0.1452,
+      0.2742
+    ],
+    "age_min": 21,
+    "age_max": 87,
+    "female_share": 0.4855
+  },
+  "e1_protocols": [
+    {
+      "data": "raw (with duplicates)",
+      "protocol": "single 80/20 split",
+      "model": "Majority",
+      "roc_auc": {
+        "mean": 0.5,
+        "sd": 0.0
+      },
+      "accuracy": {
+        "mean": 0.871,
+        "sd": 0.0
+      },
+      "balanced_accuracy": {
+        "mean": 0.5,
+        "sd": 0.0
+      },
+      "specificity": {
+        "mean": 0.0,
+        "sd": 0.0
+      },
+      "best_run_accuracy": 0.871
+    },
+    {
+      "data": "raw (with duplicates)",
+      "protocol": "single 80/20 split",
+      "model": "LogisticRegression",
+      "roc_auc": {
+        "mean": 0.929,
+        "sd": 0.04
+      },
+      "accuracy": {
+        "mean": 0.916,
+        "sd": 0.026
+      },
+      "balanced_accuracy": {
+        "mean": 0.773,
+        "sd": 0.084
+      },
+      "specificity": {
+        "mean": 0.581,
+        "sd": 0.169
+      },
+      "best_run_accuracy": 0.968
+    },
+    {
+      "data": "raw (with duplicates)",
+      "protocol": "single 80/20 split",
+      "model": "RandomForest",
+      "roc_auc": {
+        "mean": 0.923,
+        "sd": 0.046
+      },
+      "accuracy": {
+        "mean": 0.901,
+        "sd": 0.028
+      },
+      "balanced_accuracy": {
+        "mean": 0.73,
+        "sd": 0.114
+      },
+      "specificity": {
+        "mean": 0.5,
+        "sd": 0.236
+      },
+      "best_run_accuracy": 0.952
+    },
+    {
+      "data": "raw (with duplicates)",
+      "protocol": "single 80/20 split",
+      "model": "Bagging",
+      "roc_auc": {
+        "mean": 0.904,
+        "sd": 0.057
+      },
+      "accuracy": {
+        "mean": 0.898,
+        "sd": 0.037
+      },
+      "balanced_accuracy": {
+        "mean": 0.731,
+        "sd": 0.12
+      },
+      "specificity": {
+        "mean": 0.506,
+        "sd": 0.238
+      },
+      "best_run_accuracy": 0.968
+    },
+    {
+      "data": "raw (with duplicates)",
+      "protocol": "repeated 5-fold CV",
+      "model": "Majority",
+      "roc_auc": {
+        "mean": 0.5,
+        "sd": 0.0
+      },
+      "accuracy": {
+        "mean": 0.874,
+        "sd": 0.006
+      },
+      "balanced_accuracy": {
+        "mean": 0.5,
+        "sd": 0.0
+      },
+      "specificity": {
+        "mean": 0.0,
+        "sd": 0.0
+      },
+      "best_run_accuracy": 0.885
+    },
+    {
+      "data": "raw (with duplicates)",
+      "protocol": "repeated 5-fold CV",
+      "model": "LogisticRegression",
+      "roc_auc": {
+        "mean": 0.938,
+        "sd": 0.04
+      },
+      "accuracy": {
+        "mean": 0.923,
+        "sd": 0.032
+      },
+      "balanced_accuracy": {
+        "mean": 0.793,
+        "sd": 0.097
+      },
+      "specificity": {
+        "mean": 0.62,
+        "sd": 0.195
+      },
+      "best_run_accuracy": 0.984
+    },
+    {
+      "data": "raw (with duplicates)",
+      "protocol": "repeated 5-fold CV",
+      "model": "RandomForest",
+      "roc_auc": {
+        "mean": 0.931,
+        "sd": 0.047
+      },
+      "accuracy": {
+        "mean": 0.91,
+        "sd": 0.031
+      },
+      "balanced_accuracy": {
+        "mean": 0.753,
+        "sd": 0.091
+      },
+      "specificity": {
+        "mean": 0.542,
+        "sd": 0.183
+      },
+      "best_run_accuracy": 0.968
+    },
+    {
+      "data": "raw (with duplicates)",
+      "protocol": "repeated 5-fold CV",
+      "model": "Bagging",
+      "roc_auc": {
+        "mean": 0.917,
+        "sd": 0.061
+      },
+      "accuracy": {
+        "mean": 0.908,
+        "sd": 0.032
+      },
+      "balanced_accuracy": {
+        "mean": 0.758,
+        "sd": 0.089
+      },
+      "specificity": {
+        "mean": 0.557,
+        "sd": 0.183
+      },
+      "best_run_accuracy": 0.984
+    },
+    {
+      "data": "deduplicated",
+      "protocol": "single 80/20 split",
+      "model": "Majority",
+      "roc_auc": {
+        "mean": 0.5,
+        "sd": 0.0
+      },
+      "accuracy": {
+        "mean": 0.857,
+        "sd": 0.0
+      },
+      "balanced_accuracy": {
+        "mean": 0.5,
+        "sd": 0.0
+      },
+      "specificity": {
+        "mean": 0.0,
+        "sd": 0.0
+      },
+      "best_run_accuracy": 0.857
+    },
+    {
+      "data": "deduplicated",
+      "protocol": "single 80/20 split",
+      "model": "LogisticRegression",
+      "roc_auc": {
+        "mean": 0.928,
+        "sd": 0.046
+      },
+      "accuracy": {
+        "mean": 0.901,
+        "sd": 0.029
+      },
+      "balanced_accuracy": {
+        "mean": 0.752,
+        "sd": 0.078
+      },
+      "specificity": {
+        "mean": 0.544,
+        "sd": 0.159
+      },
+      "best_run_accuracy": 0.946
+    },
+    {
+      "data": "deduplicated",
+      "protocol": "single 80/20 split",
+      "model": "RandomForest",
+      "roc_auc": {
+        "mean": 0.906,
+        "sd": 0.067
+      },
+      "accuracy": {
+        "mean": 0.882,
+        "sd": 0.039
+      },
+      "balanced_accuracy": {
+        "mean": 0.707,
+        "sd": 0.096
+      },
+      "specificity": {
+        "mean": 0.463,
+        "sd": 0.186
+      },
+      "best_run_accuracy": 0.929
+    },
+    {
+      "data": "deduplicated",
+      "protocol": "single 80/20 split",
+      "model": "Bagging",
+      "roc_auc": {
+        "mean": 0.893,
+        "sd": 0.073
+      },
+      "accuracy": {
+        "mean": 0.88,
+        "sd": 0.045
+      },
+      "balanced_accuracy": {
+        "mean": 0.717,
+        "sd": 0.115
+      },
+      "specificity": {
+        "mean": 0.487,
+        "sd": 0.222
+      },
+      "best_run_accuracy": 0.964
+    },
+    {
+      "data": "deduplicated",
+      "protocol": "repeated 5-fold CV",
+      "model": "Majority",
+      "roc_auc": {
+        "mean": 0.5,
+        "sd": 0.0
+      },
+      "accuracy": {
+        "mean": 0.862,
+        "sd": 0.009
+      },
+      "balanced_accuracy": {
+        "mean": 0.5,
+        "sd": 0.0
+      },
+      "specificity": {
+        "mean": 0.0,
+        "sd": 0.0
+      },
+      "best_run_accuracy": 0.873
+    },
+    {
+      "data": "deduplicated",
+      "protocol": "repeated 5-fold CV",
+      "model": "LogisticRegression",
+      "roc_auc": {
+        "mean": 0.933,
+        "sd": 0.043
+      },
+      "accuracy": {
+        "mean": 0.915,
+        "sd": 0.033
+      },
+      "balanced_accuracy": {
+        "mean": 0.785,
+        "sd": 0.088
+      },
+      "specificity": {
+        "mean": 0.606,
+        "sd": 0.174
+      },
+      "best_run_accuracy": 0.982
+    },
+    {
+      "data": "deduplicated",
+      "protocol": "repeated 5-fold CV",
+      "model": "RandomForest",
+      "roc_auc": {
+        "mean": 0.919,
+        "sd": 0.058
+      },
+      "accuracy": {
+        "mean": 0.896,
+        "sd": 0.035
+      },
+      "balanced_accuracy": {
+        "mean": 0.743,
+        "sd": 0.089
+      },
+      "specificity": {
+        "mean": 0.532,
+        "sd": 0.172
+      },
+      "best_run_accuracy": 0.964
+    },
+    {
+      "data": "deduplicated",
+      "protocol": "repeated 5-fold CV",
+      "model": "Bagging",
+      "roc_auc": {
+        "mean": 0.9,
+        "sd": 0.07
+      },
+      "accuracy": {
+        "mean": 0.89,
+        "sd": 0.039
+      },
+      "balanced_accuracy": {
+        "mean": 0.731,
+        "sd": 0.092
+      },
+      "specificity": {
+        "mean": 0.512,
+        "sd": 0.175
+      },
+      "best_run_accuracy": 0.964
+    }
+  ],
+  "e3_classifiers": [
+    {
+      "features": "all features",
+      "model": "LogisticRegression",
+      "n_features": {
+        "mean": 16.0,
+        "sd": 0.0
+      },
+      "roc_auc": {
+        "mean": 0.936,
+        "sd": 0.039
+      },
+      "pr_auc": {
+        "mean": 0.99,
+        "sd": 0.007
+      },
+      "accuracy": {
+        "mean": 0.86,
+        "sd": 0.051
+      },
+      "balanced_accuracy": {
+        "mean": 0.835,
+        "sd": 0.081
+      },
+      "sensitivity": {
+        "mean": 0.87,
+        "sd": 0.056
+      },
+      "specificity": {
+        "mean": 0.801,
+        "sd": 0.158
+      },
+      "brier": {
+        "mean": 0.093,
+        "sd": 0.029
+      }
+    },
+    {
+      "features": "all features",
+      "model": "RandomForest",
+      "n_features": {
+        "mean": 16.0,
+        "sd": 0.0
+      },
+      "roc_auc": {
+        "mean": 0.92,
+        "sd": 0.051
+      },
+      "pr_auc": {
+        "mean": 0.985,
+        "sd": 0.013
+      },
+      "accuracy": {
+        "mean": 0.894,
+        "sd": 0.039
+      },
+      "balanced_accuracy": {
+        "mean": 0.733,
+        "sd": 0.1
+      },
+      "sensitivity": {
+        "mean": 0.955,
+        "sd": 0.026
+      },
+      "specificity": {
+        "mean": 0.511,
+        "sd": 0.19
+      },
+      "brier": {
+        "mean": 0.075,
+        "sd": 0.023
+      }
+    },
+    {
+      "features": "all features",
+      "model": "Bagging",
+      "n_features": {
+        "mean": 16.0,
+        "sd": 0.0
+      },
+      "roc_auc": {
+        "mean": 0.9,
+        "sd": 0.067
+      },
+      "pr_auc": {
+        "mean": 0.98,
+        "sd": 0.019
+      },
+      "accuracy": {
+        "mean": 0.883,
+        "sd": 0.038
+      },
+      "balanced_accuracy": {
+        "mean": 0.702,
+        "sd": 0.088
+      },
+      "sensitivity": {
+        "mean": 0.952,
+        "sd": 0.032
+      },
+      "specificity": {
+        "mean": 0.452,
+        "sd": 0.171
+      },
+      "brier": {
+        "mean": 0.08,
+        "sd": 0.024
+      }
+    },
+    {
+      "features": "forward selection",
+      "model": "LogisticRegression",
+      "n_features": {
+        "mean": 4.0,
+        "sd": 1.4
+      },
+      "roc_auc": {
+        "mean": 0.867,
+        "sd": 0.083
+      },
+      "pr_auc": {
+        "mean": 0.971,
+        "sd": 0.022
+      },
+      "accuracy": {
+        "mean": 0.815,
+        "sd": 0.064
+      },
+      "balanced_accuracy": {
+        "mean": 0.8,
+        "sd": 0.092
+      },
+      "sensitivity": {
+        "mean": 0.82,
+        "sd": 0.073
+      },
+      "specificity": {
+        "mean": 0.78,
+        "sd": 0.179
+      },
+      "brier": {
+        "mean": 0.142,
+        "sd": 0.039
+      }
+    },
+    {
+      "features": "forward selection",
+      "model": "RandomForest",
+      "n_features": {
+        "mean": 4.0,
+        "sd": 1.4
+      },
+      "roc_auc": {
+        "mean": 0.854,
+        "sd": 0.086
+      },
+      "pr_auc": {
+        "mean": 0.966,
+        "sd": 0.023
+      },
+      "accuracy": {
+        "mean": 0.82,
+        "sd": 0.068
+      },
+      "balanced_accuracy": {
+        "mean": 0.791,
+        "sd": 0.098
+      },
+      "sensitivity": {
+        "mean": 0.831,
+        "sd": 0.076
+      },
+      "specificity": {
+        "mean": 0.751,
+        "sd": 0.191
+      },
+      "brier": {
+        "mean": 0.137,
+        "sd": 0.046
+      }
+    },
+    {
+      "features": "forward selection",
+      "model": "Bagging",
+      "n_features": {
+        "mean": 4.0,
+        "sd": 1.4
+      },
+      "roc_auc": {
+        "mean": 0.854,
+        "sd": 0.084
+      },
+      "pr_auc": {
+        "mean": 0.967,
+        "sd": 0.023
+      },
+      "accuracy": {
+        "mean": 0.82,
+        "sd": 0.068
+      },
+      "balanced_accuracy": {
+        "mean": 0.794,
+        "sd": 0.096
+      },
+      "sensitivity": {
+        "mean": 0.83,
+        "sd": 0.076
+      },
+      "specificity": {
+        "mean": 0.759,
+        "sd": 0.183
+      },
+      "brier": {
+        "mean": 0.138,
+        "sd": 0.046
+      }
+    }
+  ],
+  "e4_forward_selection": [
+    {
+      "config": "acc_unweighted",
+      "n_features": {
+        "mean": 1.0,
+        "sd": 0.0
+      },
+      "share_single_feature": 1.0,
+      "jaccard_stability": 0.922,
+      "most_common_first_feature": "SMOKING",
+      "seconds_per_run": {
+        "mean": 0.27,
+        "sd": 0.03
+      },
+      "roc_auc": {
+        "mean": 0.509,
+        "sd": 0.088
+      },
+      "balanced_accuracy": {
+        "mean": 0.5,
+        "sd": 0.002
+      }
+    },
+    {
+      "config": "balacc_unweighted",
+      "n_features": {
+        "mean": 3.62,
+        "sd": 2.83
+      },
+      "share_single_feature": 0.48,
+      "jaccard_stability": 0.361,
+      "most_common_first_feature": "SMOKING",
+      "seconds_per_run": {
+        "mean": 0.51,
+        "sd": 0.24
+      },
+      "roc_auc": {
+        "mean": 0.62,
+        "sd": 0.159
+      },
+      "balanced_accuracy": {
+        "mean": 0.561,
+        "sd": 0.089
+      }
+    },
+    {
+      "config": "balacc_weighted_d4",
+      "n_features": {
+        "mean": 4.02,
+        "sd": 1.44
+      },
+      "share_single_feature": 0.0,
+      "jaccard_stability": 0.507,
+      "most_common_first_feature": "ALLERGY",
+      "seconds_per_run": {
+        "mean": 0.63,
+        "sd": 0.13
+      },
+      "roc_auc": {
+        "mean": 0.854,
+        "sd": 0.084
+      },
+      "balanced_accuracy": {
+        "mean": 0.794,
+        "sd": 0.096
+      }
+    }
+  ],
+  "e6_selection_frequency": {
+    "acc_unweighted": {
+      "SMOKING": 0.96,
+      "AGE": 0.04
+    },
+    "balacc_unweighted": {
+      "SMOKING": 0.74,
+      "AGE": 0.52,
+      "ALLERGY": 0.3,
+      "ALCOHOL_CONSUMING": 0.28,
+      "CHEST_PAIN": 0.28,
+      "ANXIETY": 0.26,
+      "FATIGUE": 0.22,
+      "YELLOW_FINGERS": 0.22,
+      "PEER_PRESSURE": 0.18,
+      "WHEEZING": 0.16,
+      "CHRONIC_DISEASE": 0.14,
+      "SWALLOWING_DIFFICULTY": 0.12,
+      "GENDER_F": 0.08,
+      "SHORTNESS_OF_BREATH": 0.08,
+      "COUGHING": 0.02,
+      "GENDER_M": 0.02
+    },
+    "balacc_weighted_d4": {
+      "ALLERGY": 0.96,
+      "SWALLOWING_DIFFICULTY": 0.94,
+      "PEER_PRESSURE": 0.62,
+      "COUGHING": 0.46,
+      "ALCOHOL_CONSUMING": 0.28,
+      "FATIGUE": 0.24,
+      "ANXIETY": 0.2,
+      "YELLOW_FINGERS": 0.12,
+      "CHRONIC_DISEASE": 0.1,
+      "WHEEZING": 0.04,
+      "GENDER_F": 0.04,
+      "CHEST_PAIN": 0.02
+    }
+  },
+  "e7_reliability": {
+    "all features": {
+      "auc": {
+        "mean": 0.8774,
+        "sd": 0.0348
+      },
+      "brier_raw": {
+        "mean": 0.0804,
+        "sd": 0.0064
+      },
+      "brier_cal": {
+        "mean": 0.0857,
+        "sd": 0.0064
+      },
+      "ece_raw": {
+        "mean": 0.0367,
+        "sd": 0.012
+      },
+      "ece_cal": {
+        "mean": 0.0599,
+        "sd": 0.0118
+      },
+      "sensitivity": {
+        "mean": 0.8966,
+        "sd": 0.0089
+      },
+      "specificity": {
+        "mean": 0.7289,
+        "sd": 0.0352
+      },
+      "balanced_accuracy": {
+        "mean": 0.8128,
+        "sd": 0.0182
+      },
+      "error_rate_all": {
+        "mean": 0.1264,
+        "sd": 0.0091
+      },
+      "ood_rate": {
+        "mean": 0.0283,
+        "sd": 0.0048
+      },
+      "width_correct": {
+        "mean": 0.1893,
+        "sd": 0.0135
+      },
+      "width_wrong": {
+        "mean": 0.7285,
+        "sd": 0.0688
+      },
+      "width_auroc_for_errors": {
+        "mean": 0.8277,
+        "sd": 0.0405
+      },
+      "err_ood": {
+        "mean": 0.0935,
+        "sd": 0.0856
+      },
+      "err_not_ood": {
+        "mean": 0.1275,
+        "sd": 0.0099
+      },
+      "share_errors_false_negative": {
+        "mean": 0.7049,
+        "sd": 0.0319
+      },
+      "err_width_narrow": {
+        "mean": 0.0261,
+        "sd": 0.0171
+      },
+      "err_width_middle": {
+        "mean": 0.0239,
+        "sd": 0.0228
+      },
+      "err_width_wide": {
+        "mean": 0.3293,
+        "sd": 0.0344
+      },
+      "a10_confident_errors_false_negative": {
+        "mean": 0.9084,
+        "sd": 0.044
+      },
+      "a10_coverage_high": {
+        "mean": 0.9017,
+        "sd": 0.0072
+      },
+      "a10_coverage_low": {
+        "mean": 0.9316,
+        "sd": 0.0355
+      },
+      "a10_single": {
+        "mean": 0.6529,
+        "sd": 0.0708
+      },
+      "a10_both": {
+        "mean": 0.3471,
+        "sd": 0.0708
+      },
+      "a10_empty": {
+        "mean": 0.0,
+        "sd": 0.0
+      },
+      "a10_flagged": {
+        "mean": 0.3623,
+        "sd": 0.0711
+      },
+      "a10_err_confident": {
+        "mean": 0.1482,
+        "sd": 0.0202
+      },
+      "a10_err_flagged": {
+        "mean": 0.0947,
+        "sd": 0.0323
+      },
+      "a10_errors_caught": {
+        "mean": 0.2581,
+        "sd": 0.0698
+      },
+      "a20_confident_errors_false_negative": {
+        "mean": 0.8508,
+        "sd": 0.0609
+      },
+      "a20_coverage_high": {
+        "mean": 0.8155,
+        "sd": 0.02
+      },
+      "a20_coverage_low": {
+        "mean": 0.8316,
+        "sd": 0.0585
+      },
+      "a20_single": {
+        "mean": 0.9279,
+        "sd": 0.0366
+      },
+      "a20_both": {
+        "mean": 0.033,
+        "sd": 0.0362
+      },
+      "a20_empty": {
+        "mean": 0.0391,
+        "sd": 0.0146
+      },
+      "a20_flagged": {
+        "mean": 0.1475,
+        "sd": 0.0371
+      },
+      "a20_err_confident": {
+        "mean": 0.1207,
+        "sd": 0.0097
+      },
+      "a20_err_flagged": {
+        "mean": 0.1671,
+        "sd": 0.0571
+      },
+      "a20_errors_caught": {
+        "mean": 0.186,
+        "sd": 0.0463
+      },
+      "a10_fisher_p": {
+        "median": 0.8690813055248283,
+        "max": 0.9999539179759628
+      },
+      "a20_fisher_p": {
+        "median": 0.3828511048430593,
+        "max": 0.8512074899832242
+      }
+    },
+    "deployed (forward selection)": {
+      "auc": {
+        "mean": 0.8474,
+        "sd": 0.0294
+      },
+      "brier_raw": {
+        "mean": 0.1375,
+        "sd": 0.0118
+      },
+      "brier_cal": {
+        "mean": 0.0919,
+        "sd": 0.007
+      },
+      "ece_raw": {
+        "mean": 0.1512,
+        "sd": 0.0219
+      },
+      "ece_cal": {
+        "mean": 0.0363,
+        "sd": 0.0146
+      },
+      "sensitivity": {
+        "mean": 0.8937,
+        "sd": 0.0236
+      },
+      "specificity": {
+        "mean": 0.5895,
+        "sd": 0.1172
+      },
+      "balanced_accuracy": {
+        "mean": 0.7416,
+        "sd": 0.0535
+      },
+      "error_rate_all": {
+        "mean": 0.1482,
+        "sd": 0.0184
+      },
+      "ood_rate": {
+        "mean": 0.1388,
+        "sd": 0.0716
+      },
+      "width_correct": {
+        "mean": 0.0736,
+        "sd": 0.0129
+      },
+      "width_wrong": {
+        "mean": 0.1973,
+        "sd": 0.0355
+      },
+      "width_auroc_for_errors": {
+        "mean": 0.7982,
+        "sd": 0.0269
+      },
+      "err_ood": {
+        "mean": 0.1454,
+        "sd": 0.052
+      },
+      "err_not_ood": {
+        "mean": 0.1476,
+        "sd": 0.0199
+      },
+      "share_errors_false_negative": {
+        "mean": 0.6168,
+        "sd": 0.1093
+      },
+      "err_width_narrow": {
+        "mean": 0.0196,
+        "sd": 0.0123
+      },
+      "err_width_middle": {
+        "mean": 0.0891,
+        "sd": 0.0265
+      },
+      "err_width_wide": {
+        "mean": 0.3359,
+        "sd": 0.0526
+      },
+      "a10_confident_errors_false_negative": {
+        "mean": 0.8985,
+        "sd": 0.0613
+      },
+      "a10_coverage_high": {
+        "mean": 0.9004,
+        "sd": 0.0231
+      },
+      "a10_coverage_low": {
+        "mean": 0.9079,
+        "sd": 0.0671
+      },
+      "a10_single": {
+        "mean": 0.5971,
+        "sd": 0.1275
+      },
+      "a10_both": {
+        "mean": 0.4022,
+        "sd": 0.1284
+      },
+      "a10_empty": {
+        "mean": 0.0007,
+        "sd": 0.0023
+      },
+      "a10_flagged": {
+        "mean": 0.4986,
+        "sd": 0.1145
+      },
+      "a10_err_confident": {
+        "mean": 0.1722,
+        "sd": 0.0494
+      },
+      "a10_err_flagged": {
+        "mean": 0.1325,
+        "sd": 0.0499
+      },
+      "a10_errors_caught": {
+        "mean": 0.4357,
+        "sd": 0.1529
+      },
+      "a20_confident_errors_false_negative": {
+        "mean": 0.8027,
+        "sd": 0.1154
+      },
+      "a20_coverage_high": {
+        "mean": 0.8122,
+        "sd": 0.0152
+      },
+      "a20_coverage_low": {
+        "mean": 0.7789,
+        "sd": 0.0396
+      },
+      "a20_single": {
+        "mean": 0.8938,
+        "sd": 0.0705
+      },
+      "a20_both": {
+        "mean": 0.0866,
+        "sd": 0.0689
+      },
+      "a20_empty": {
+        "mean": 0.0196,
+        "sd": 0.0231
+      },
+      "a20_flagged": {
+        "mean": 0.3112,
+        "sd": 0.0907
+      },
+      "a20_err_confident": {
+        "mean": 0.1434,
+        "sd": 0.0254
+      },
+      "a20_err_flagged": {
+        "mean": 0.1572,
+        "sd": 0.0352
+      },
+      "a20_errors_caught": {
+        "mean": 0.3343,
+        "sd": 0.1241
+      },
+      "a10_fisher_p": {
+        "median": 0.9483898321504656,
+        "max": 0.9999617233037627
+      },
+      "a20_fisher_p": {
+        "median": 0.6147256191262276,
+        "max": 0.8196183767399936
+      }
+    }
+  },
+  "e8_subgroups": [
+    {
+      "group": "sex",
+      "level": "F",
+      "n": 134,
+      "n_negative": 21,
+      "auc": {
+        "mean": 0.895,
+        "sd": 0.019
+      },
+      "sens": {
+        "mean": 0.875,
+        "sd": 0.037
+      },
+      "spec": {
+        "mean": 0.724,
+        "sd": 0.105
+      }
+    },
+    {
+      "group": "sex",
+      "level": "M",
+      "n": 142,
+      "n_negative": 17,
+      "auc": {
+        "mean": 0.782,
+        "sd": 0.061
+      },
+      "sens": {
+        "mean": 0.91,
+        "sd": 0.018
+      },
+      "spec": {
+        "mean": 0.424,
+        "sd": 0.154
+      }
+    },
+    {
+      "group": "age_band",
+      "level": "<60",
+      "n": 92,
+      "n_negative": 16,
+      "auc": {
+        "mean": 0.797,
+        "sd": 0.035
+      },
+      "sens": {
+        "mean": 0.87,
+        "sd": 0.023
+      },
+      "spec": {
+        "mean": 0.5,
+        "sd": 0.121
+      }
+    },
+    {
+      "group": "age_band",
+      "level": "60-69",
+      "n": 118,
+      "n_negative": 19,
+      "auc": {
+        "mean": 0.84,
+        "sd": 0.051
+      },
+      "sens": {
+        "mean": 0.878,
+        "sd": 0.035
+      },
+      "spec": {
+        "mean": 0.611,
+        "sd": 0.153
+      }
+    },
+    {
+      "group": "age_band",
+      "level": ">=70",
+      "n": 66,
+      "n_negative": 3,
+      "auc": {
+        "mean": 0.99,
+        "sd": 0.01
+      },
+      "sens": {
+        "mean": 0.948,
+        "sd": 0.021
+      },
+      "spec": {
+        "mean": 0.933,
+        "sd": 0.141
+      }
+    }
+  ],
+  "e9_global_shap": [
+    {
+      "feature": "ALLERGY",
+      "mean_abs_shap": 0.0813,
+      "mean_shap_if_yes": 0.0736,
+      "mean_shap_if_no": -0.0906
+    },
+    {
+      "feature": "SWALLOWING_DIFFICULTY",
+      "mean_abs_shap": 0.0598,
+      "mean_shap_if_yes": 0.0662,
+      "mean_shap_if_no": -0.0543
+    },
+    {
+      "feature": "PEER_PRESSURE",
+      "mean_abs_shap": 0.0433,
+      "mean_shap_if_yes": 0.0449,
+      "mean_shap_if_no": -0.0417
+    },
+    {
+      "feature": "COUGHING",
+      "mean_abs_shap": 0.031,
+      "mean_shap_if_yes": 0.027,
+      "mean_shap_if_no": -0.0364
+    }
+  ]
+}

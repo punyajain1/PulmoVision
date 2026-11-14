@@ -49,7 +49,7 @@ export default function Register() {
             <div>
               <h2 style={{ color: "#FFFFFF", margin: 0, fontSize: "1.4rem" }}>PulmoDetect</h2>
               <p style={{ color: "#BFDBFE", margin: 0, fontSize: "0.85rem" }}>
-                Early-stage Pulmonary Diagnostic Model
+                Lung Cancer Risk Assessment
               </p>
             </div>
           </div>
@@ -59,7 +59,7 @@ export default function Register() {
               Join the Clinical Intelligence Portal
             </h1>
             <p style={{ color: "#E2E8F0", fontSize: "1.05rem", lineHeight: 1.6 }}>
-              Set up your research account to run patient assessments, review cross-validated baseline models, and save persistent diagnostic histories.
+              Set up your research account to run risk assessments, review cross-validated baseline models, and save a history of past assessments.
             </p>
           </div>
         </div>

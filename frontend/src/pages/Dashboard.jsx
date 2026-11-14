@@ -68,7 +68,7 @@ export default function Dashboard() {
             <span>{todayStr}</span>
           </div>
           <h1 style={{ color: "#FFFFFF", fontSize: "1.75rem", margin: "0 0 6px" }}>
-            Diagnostic Intelligence Center
+            Risk Assessment Dashboard
           </h1>
           <p style={{ color: "#BFDBFE", margin: 0, fontSize: "0.95rem", maxWidth: 580 }}>
             Real-time inference tracking, ML model metrics, and patient population risk statistics.
@@ -225,7 +225,7 @@ export default function Dashboard() {
           <div>
             <h3 style={{ margin: 0 }}>Recent Patient Evaluations</h3>
             <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--text-muted)" }}>
-              Latest diagnostic outcomes recorded under your credentials
+              Latest risk assessments recorded under your account
             </p>
           </div>
           <Link to="/history" className="btn btn-secondary" style={{ padding: "8px 14px", fontSize: "0.825rem" }}>

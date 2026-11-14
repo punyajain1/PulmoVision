@@ -1,0 +1,21 @@
+{
+  "base_url": "http://127.0.0.1:8011",
+  "label": "local_m2",
+  "health_first_request_ms": 22.9,
+  "with_shap": {
+    "explain": true,
+    "n": 500,
+    "first_ms": 39.9,
+    "median_ms": 17.7,
+    "p95_ms": 19.4,
+    "max_ms": 43.8
+  },
+  "without_shap": {
+    "explain": false,
+    "n": 500,
+    "first_ms": 11.6,
+    "median_ms": 10.3,
+    "p95_ms": 11.6,
+    "max_ms": 36.4
+  }
+}

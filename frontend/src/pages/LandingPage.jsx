@@ -87,7 +87,7 @@ export default function LandingPage() {
             boxShadow: "0 2px 6px rgba(37, 99, 235, 0.08)"
           }}>
             <Sparkles size={16} />
-            <span>Academic Minor Project 2026 &bull; AI Diagnostic Support</span>
+            <span>Academic Minor Project 2026 &bull; AI Risk Assessment Support</span>
           </div>
 
           <h1 style={{
